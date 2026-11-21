@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { supabase } from './supabase'
 import './App.css'
 
 type Country = {
@@ -21,49 +22,101 @@ type State = {
   countries: Country[]
 }
 
-async function api(path: string, options?: RequestInit) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-  })
-  if (!response.ok) throw new Error(await response.text())
-  return response.status === 204 ? null : response.json()
+const mapCountry = (row: Record<string, unknown>): Country => ({
+  id: String(row.id),
+  name: String(row.name),
+  code: String(row.code),
+  flag: String(row.flag),
+  jury: Number(row.jury),
+  televote: Number(row.televote),
+  revealedJury: Number(row.revealed_jury),
+  revealedTelevote: Number(row.revealed_televote),
+})
+
+async function loadState(): Promise<State | null> {
+  const [settingsResult, countriesResult] = await Promise.all([
+    supabase.from('settings').select('*').eq('id', 'main').single(),
+    supabase.from('countries').select('*'),
+  ])
+
+  if (settingsResult.error) throw settingsResult.error
+  if (countriesResult.error) throw countriesResult.error
+
+  const settings = settingsResult.data
+  return {
+    title: settings.title,
+    eventName: settings.event_name,
+    phase: settings.phase,
+    visible: settings.visible,
+    lastAward: settings.last_award,
+    countries: countriesResult.data.map((row) => mapCountry(row)),
+  }
 }
 
 function useStateSync() {
   const [state, setState] = useState<State | null>(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    api('/api/state').then(setState)
-    const events = new EventSource('/api/events')
-    events.onmessage = (event) => setState(JSON.parse(event.data))
-    return () => events.close()
+    const refresh = async () => {
+      try {
+        setState(await loadState())
+        setError('')
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : String(reason))
+      }
+    }
+
+    refresh()
+    const channel = supabase
+      .channel('smilevision-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'countries' }, refresh)
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
-  return state
+  return { state, error }
 }
 
 function getTotal(country: Country, phase: State['phase']) {
-  if (phase === 'jury') return country.revealedJury
-  return country.revealedJury + country.revealedTelevote
+  return phase === 'jury'
+    ? country.revealedJury
+    : country.revealedJury + country.revealedTelevote
+}
+
+async function updateSettings(patch: Record<string, unknown>) {
+  const { error } = await supabase.from('settings').update(patch).eq('id', 'main')
+  if (error) throw error
+}
+
+async function updateCountry(id: string, patch: Record<string, unknown>) {
+  const { error } = await supabase.from('countries').update(patch).eq('id', id)
+  if (error) throw error
 }
 
 function Admin() {
-  const state = useStateSync()
+  const { state, error } = useStateSync()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [flag, setFlag] = useState('🏳️')
   const [awardTo, setAwardTo] = useState('')
   const [points, setPoints] = useState(12)
 
+  if (error) return <main className="loading">Supabase setup required: {error}</main>
   if (!state) return <main className="loading">Loading SmileVision...</main>
-
-  const updateCountry = async (id: string, patch: Partial<Country>) =>
-    api(`/api/countries/${id}`, { method: 'PUT', body: JSON.stringify(patch) })
 
   const addCountry = async (event: FormEvent) => {
     event.preventDefault()
-    await api('/api/countries', { method: 'POST', body: JSON.stringify({ name, code, flag }) })
+    await supabase.from('countries').insert({
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      code: (code || name.slice(0, 2)).trim().toUpperCase(),
+      flag,
+    })
     setName('')
     setCode('')
   }
@@ -73,34 +126,36 @@ function Admin() {
     const country = state.countries.find((item) => item.id === awardTo)
     if (!country) return
     const patch = state.phase === 'jury'
-      ? { jury: country.jury + points, revealedJury: country.revealedJury + points }
-      : { televote: country.televote + points, revealedTelevote: country.revealedTelevote + points }
+      ? { jury: country.jury + points, revealed_jury: country.revealedJury + points }
+      : { televote: country.televote + points, revealed_televote: country.revealedTelevote + points }
     await updateCountry(awardTo, patch)
-    await api('/api/state', {
-      method: 'PUT',
-      body: JSON.stringify({ lastAward: { from: 'Presenter', to: country.name, points } }),
-    })
+    await updateSettings({ last_award: { from: 'Presenter', to: country.name, points } })
+  }
+
+  const reset = async () => {
+    await updateSettings({ phase: 'jury', visible: true, last_award: null })
+    await supabase.from('countries').update({
+      jury: 0,
+      televote: 0,
+      revealed_jury: 0,
+      revealed_televote: 0,
+    }).neq('id', '')
   }
 
   return (
     <main className="admin-shell">
       <aside className="sidebar">
         <div className="brand"><span className="brand-mark">S</span><strong>SMILE</strong>VISION</div>
-        <nav>
-          <button className="nav-item active">◫ <span>Control room</span></button>
-        </nav>
+        <nav><button className="nav-item active">◫ <span>Control room</span></button></nav>
         <div className="live-status"><span /> ONSCREEN {state.visible ? 'LIVE' : 'HIDDEN'}</div>
       </aside>
 
       <section className="admin-content">
         <header className="topbar">
-          <div>
-            <p className="eyebrow">EVENT CONTROL</p>
-            <h1>{state.eventName}</h1>
-          </div>
+          <div><p className="eyebrow">EVENT CONTROL</p><h1>{state.eventName}</h1></div>
           <div className="top-actions">
             <a className="button secondary" href="/overlay" target="_blank">Open overlay ↗</a>
-            <button className="button" onClick={() => api('/api/state', { method: 'PUT', body: JSON.stringify({ visible: !state.visible }) })}>
+            <button className="button" onClick={() => updateSettings({ visible: !state.visible })}>
               {state.visible ? 'Hide overlay' : 'Show overlay'}
             </button>
           </div>
@@ -112,18 +167,16 @@ function Admin() {
               <div><p className="eyebrow">PARTICIPANTS</p><h2>{state.countries.length} countries</h2></div>
               <button className="icon-button" onClick={() => document.getElementById('country-name')?.focus()}>＋</button>
             </div>
-
             <div className="country-list">
               {state.countries.map((country) => (
                 <article className="country-row" key={country.id}>
                   <div className="country-identity"><span className="flag">{country.flag}</span><div><strong>{country.name}</strong><small>{country.code}</small></div></div>
-                  <label>Jury <input type="number" min="0" value={country.jury} onChange={(event) => updateCountry(country.id, { jury: Number(event.target.value), revealedJury: Number(event.target.value) })} /></label>
-                  <label>Public <input type="number" min="0" value={country.televote} onChange={(event) => updateCountry(country.id, { televote: Number(event.target.value), revealedTelevote: Number(event.target.value) })} /></label>
-                  <button className="delete-button" title="Remove country" onClick={() => api(`/api/countries/${country.id}`, { method: 'DELETE' })}>×</button>
+                  <label>Jury <input type="number" min="0" value={country.jury} onChange={(event) => updateCountry(country.id, { jury: Number(event.target.value), revealed_jury: Number(event.target.value) })} /></label>
+                  <label>Public <input type="number" min="0" value={country.televote} onChange={(event) => updateCountry(country.id, { televote: Number(event.target.value), revealed_televote: Number(event.target.value) })} /></label>
+                  <button className="delete-button" title="Remove country" onClick={() => supabase.from('countries').delete().eq('id', country.id)}>×</button>
                 </article>
               ))}
             </div>
-
             <form className="add-country" onSubmit={addCountry}>
               <input id="country-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Country name" required />
               <input className="code-input" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Code" maxLength={3} />
@@ -136,11 +189,10 @@ function Admin() {
             <div className="panel stage-panel">
               <p className="eyebrow">VOTE TYPE</p>
               <div className="segmented">
-                <button className={state.phase === 'jury' ? 'active' : ''} onClick={() => api('/api/state', { method: 'PUT', body: JSON.stringify({ phase: 'jury', lastAward: null }) })}>Jury vote</button>
-                <button className={state.phase === 'televote' ? 'active' : ''} onClick={() => api('/api/state', { method: 'PUT', body: JSON.stringify({ phase: 'televote', lastAward: null }) })}>Public vote</button>
+                <button className={state.phase === 'jury' ? 'active' : ''} onClick={() => updateSettings({ phase: 'jury', last_award: null })}>Jury vote</button>
+                <button className={state.phase === 'televote' ? 'active' : ''} onClick={() => updateSettings({ phase: 'televote', last_award: null })}>Public vote</button>
               </div>
             </div>
-
             <div className="panel award-panel">
               <p className="eyebrow">AWARD POINTS</p>
               <div className="award-grid">
@@ -154,9 +206,8 @@ function Admin() {
               </select>
               <button className="award-button" disabled={!awardTo} onClick={award}>Award {points} points</button>
             </div>
-
             <div className="panel dangerous-panel">
-              <button className="reset-button" onClick={() => api('/api/reset', { method: 'POST' })}>↻ Reset all results</button>
+              <button className="reset-button" onClick={reset}>↻ Reset all results</button>
             </div>
           </section>
         </div>
@@ -166,12 +217,13 @@ function Admin() {
 }
 
 function Overlay() {
-  const state = useStateSync()
+  const { state, error } = useStateSync()
   const sorted = useMemo(() => {
     if (!state) return []
     return [...state.countries].sort((a, b) => getTotal(b, state.phase) - getTotal(a, state.phase))
   }, [state])
 
+  if (error) return <main className="overlay-root hidden-overlay" />
   if (!state) return null
   if (!state.visible) return <main className="overlay-root hidden-overlay" />
 
@@ -182,7 +234,6 @@ function Overlay() {
         <div className="overlay-brand"><span>S</span><div><strong>SMILEVISION</strong><small>{state.eventName}</small></div></div>
         <div className="phase-badge">{state.phase === 'jury' ? 'JURY VOTE' : 'PUBLIC VOTE'}</div>
       </header>
-
       <section className="results-board">
         <div className="board-title"><span>RANK</span><span>COUNTRY</span><span>TOTAL</span></div>
         <div className="board-list">
@@ -199,7 +250,6 @@ function Overlay() {
           })}
         </div>
       </section>
-
       {state.lastAward && (
         <div className="award-toast" key={`${state.lastAward.to}-${state.lastAward.points}`}>
           <span className="award-copy">POINTS AWARDED TO</span>

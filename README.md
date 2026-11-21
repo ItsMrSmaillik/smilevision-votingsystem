@@ -1,4 +1,20 @@
-# React + TypeScript + Vite
+# SmileVision
+
+Two-page Eurovision-style voting control system for OBS.
+
+- `/` — admin control panel
+- `/overlay` — transparent-ready OBS browser source
+
+## Supabase setup
+
+Run `supabase/migration.sql` in the Supabase SQL Editor once.
+
+Create a local `.env.local` from `.env.example`, then run:
+
+```bash
+npm install
+npm run dev
+```
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
