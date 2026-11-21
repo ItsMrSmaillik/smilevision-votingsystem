@@ -1,0 +1,43 @@
+{
+  "title": "SMILEVISION",
+  "eventName": "Grand Final",
+  "phase": "jury",
+  "visible": true,
+  "lastAward": {
+    "from": "Presenter",
+    "to": "SmileLand",
+    "points": 12
+  },
+  "countries": [
+    {
+      "id": "smile",
+      "name": "SmileLand",
+      "code": "SM",
+      "flag": "🌞",
+      "jury": 12,
+      "televote": 0,
+      "revealedJury": 12,
+      "revealedTelevote": 0
+    },
+    {
+      "id": "sweden",
+      "name": "Sweden",
+      "code": "SE",
+      "flag": "🇸🇪",
+      "jury": 0,
+      "televote": 0,
+      "revealedJury": 0,
+      "revealedTelevote": 0
+    },
+    {
+      "id": "ukraine",
+      "name": "Ukraine",
+      "code": "UA",
+      "flag": "🇺🇦",
+      "jury": 0,
+      "televote": 0,
+      "revealedJury": 0,
+      "revealedTelevote": 0
+    }
+  ]
+}
