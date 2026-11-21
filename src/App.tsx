@@ -7,6 +7,7 @@ type Country = {
   name: string
   code: string
   flag: string
+  videoUrl: string
   jury: number
   televote: number
   revealedJury: number
@@ -19,6 +20,7 @@ type State = {
   phase: 'jury' | 'televote'
   visible: boolean
   lastAward: { from: string; to: string; points: number } | null
+  spokesperson: { countryId: string; name: string; videoUrl: string; nonce: number } | null
   countries: Country[]
 }
 
@@ -27,6 +29,7 @@ const mapCountry = (row: Record<string, unknown>): Country => ({
   name: String(row.name),
   code: String(row.code),
   flag: String(row.flag),
+  videoUrl: row.video_url ? String(row.video_url) : '',
   jury: Number(row.jury),
   televote: Number(row.televote),
   revealedJury: Number(row.revealed_jury),
@@ -49,6 +52,7 @@ async function loadState(): Promise<State | null> {
     phase: settings.phase,
     visible: settings.visible,
     lastAward: settings.last_award,
+    spokesperson: settings.spokesperson,
     countries: countriesResult.data.map((row) => mapCountry(row)),
   }
 }
@@ -121,6 +125,38 @@ function Admin() {
     setCode('')
   }
 
+  const uploadSpokesperson = async (country: Country, file?: File) => {
+    if (!file) return
+    if (file.type !== 'video/mp4') {
+      window.alert('Please select an MP4 video')
+      return
+    }
+    const safeName = `${country.id}-${Date.now()}.mp4`
+    const { error: uploadError } = await supabase.storage
+      .from('spokespersons')
+      .upload(safeName, file, { contentType: 'video/mp4', upsert: true })
+    if (uploadError) throw uploadError
+    const { data } = supabase.storage.from('spokespersons').getPublicUrl(safeName)
+    await updateCountry(country.id, { video_url: data.publicUrl })
+  }
+
+  const playSpokesperson = async () => {
+    if (!awardTo) return
+    const country = state.countries.find((item) => item.id === awardTo)
+    if (!country?.videoUrl) {
+      window.alert('Upload an MP4 spokesperson video for this country first')
+      return
+    }
+    await updateSettings({
+      spokesperson: {
+        countryId: country.id,
+        name: country.name,
+        videoUrl: country.videoUrl,
+        nonce: Date.now(),
+      },
+    })
+  }
+
   const award = async () => {
     if (!awardTo) return
     const country = state.countries.find((item) => item.id === awardTo)
@@ -133,7 +169,7 @@ function Admin() {
   }
 
   const reset = async () => {
-    await updateSettings({ phase: 'jury', visible: true, last_award: null })
+    await updateSettings({ phase: 'jury', visible: true, last_award: null, spokesperson: null })
     await supabase.from('countries').update({
       jury: 0,
       televote: 0,
@@ -173,6 +209,10 @@ function Admin() {
                   <div className="country-identity"><span className="flag">{country.flag}</span><div><strong>{country.name}</strong><small>{country.code}</small></div></div>
                   <label>Jury <input type="number" min="0" value={country.jury} onChange={(event) => updateCountry(country.id, { jury: Number(event.target.value), revealed_jury: Number(event.target.value) })} /></label>
                   <label>Public <input type="number" min="0" value={country.televote} onChange={(event) => updateCountry(country.id, { televote: Number(event.target.value), revealed_televote: Number(event.target.value) })} /></label>
+                  <label className="video-upload" title={country.videoUrl ? 'Replace spokesperson video' : 'Upload spokesperson video'}>
+                    <span>{country.videoUrl ? 'Video ✓' : 'Video +'}</span>
+                    <input type="file" accept="video/mp4" onChange={(event) => uploadSpokesperson(country, event.target.files?.[0])} />
+                  </label>
                   <button className="delete-button" title="Remove country" onClick={() => supabase.from('countries').delete().eq('id', country.id)}>×</button>
                 </article>
               ))}
@@ -205,6 +245,7 @@ function Admin() {
                 {state.countries.map((country) => <option key={country.id} value={country.id}>{country.flag} {country.name}</option>)}
               </select>
               <button className="award-button" disabled={!awardTo} onClick={award}>Award {points} points</button>
+              <button className="spokesperson-button" disabled={!awardTo} onClick={playSpokesperson}>▶ Play spokesperson</button>
             </div>
             <div className="panel dangerous-panel">
               <button className="reset-button" onClick={reset}>↻ Reset all results</button>
@@ -255,6 +296,16 @@ function Overlay() {
           <span className="award-copy">POINTS AWARDED TO</span>
           <strong>{state.lastAward.to}</strong>
           <b>{state.lastAward.points}</b>
+        </div>
+      )}
+      {state.spokesperson && (
+        <div className="spokesperson-overlay" key={state.spokesperson.nonce}>
+          <video
+            src={state.spokesperson.videoUrl}
+            autoPlay
+            controls
+            onEnded={() => updateSettings({ spokesperson: null })}
+          />
         </div>
       )}
     </main>

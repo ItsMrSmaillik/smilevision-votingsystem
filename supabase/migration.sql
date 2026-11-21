@@ -2,9 +2,10 @@ create table if not exists public.settings (
   id text primary key,
   title text not null default 'SMILEVISION',
   event_name text not null default 'Grand Final',
-  phase text not null default 'jury' check (phase in ('jury', 'televote')),
+  phase text not null default 'jury',
   visible boolean not null default true,
-  last_award jsonb
+  last_award jsonb,
+  spokesperson jsonb
 );
 
 create table if not exists public.countries (
@@ -12,11 +13,16 @@ create table if not exists public.countries (
   name text not null,
   code text not null,
   flag text not null default '🏳️',
+  video_url text,
   jury integer not null default 0,
   televote integer not null default 0,
   revealed_jury integer not null default 0,
   revealed_televote integer not null default 0
 );
+
+alter table public.settings add column if not exists last_award jsonb;
+alter table public.settings add column if not exists spokesperson jsonb;
+alter table public.countries add column if not exists video_url text;
 
 alter table public.settings enable row level security;
 alter table public.countries enable row level security;
@@ -31,25 +37,34 @@ create policy "Public read countries" on public.countries for select using (true
 drop policy if exists "Public change countries" on public.countries;
 create policy "Public change countries" on public.countries for all using (true) with check (true);
 
-insert into public.settings (id, title, event_name, phase, visible, last_award)
-values ('main', 'SMILEVISION', 'Grand Final', 'jury', true, null)
-on conflict (id) do nothing;
+insert into public.settings (id, title, event_name, phase, visible)
+select 'main', 'SMILEVISION', 'Grand Final', 'jury', true
+where not exists (select 1 from public.settings where id = 'main');
 
 insert into public.countries (id, name, code, flag)
-values
-  ('smile', 'SmileLand', 'SM', '🌞'),
-  ('sweden', 'Sweden', 'SE', '🇸🇪'),
-  ('ukraine', 'Ukraine', 'UA', '🇺🇦')
-on conflict (id) do nothing;
+select 'smile', 'SmileLand', 'SM', '🌞'
+where not exists (select 1 from public.countries where id = 'smile');
 
-do $$
-begin
-  begin
-    alter publication supabase_realtime add table public.settings;
-  exception when duplicate_object then null;
-  end;
-  begin
-    alter publication supabase_realtime add table public.countries;
-  exception when duplicate_object then null;
-  end;
-end $$;
+insert into public.countries (id, name, code, flag)
+select 'sweden', 'Sweden', 'SE', '🇸🇪'
+where not exists (select 1 from public.countries where id = 'sweden');
+
+insert into public.countries (id, name, code, flag)
+select 'ukraine', 'Ukraine', 'UA', '🇺🇦'
+where not exists (select 1 from public.countries where id = 'ukraine');
+
+insert into storage.buckets (id, name, public)
+select 'spokespersons', 'spokespersons', true
+where not exists (
+  select 1 from storage.buckets where id = 'spokespersons'
+);
+
+drop policy if exists "Public spokesperson downloads" on storage.objects;
+create policy "Public spokesperson downloads"
+on storage.objects for select
+using (bucket_id = 'spokespersons');
+
+drop policy if exists "Public spokesperson uploads" on storage.objects;
+create policy "Public spokesperson uploads"
+on storage.objects for insert
+with check (bucket_id = 'spokespersons');

@@ -34,7 +34,7 @@
 .panel-header h2 { font-size: 18px; }
 .icon-button { width: 34px; height: 34px; border: 0; border-radius: 7px; background: var(--pink); color: white; font-size: 20px; }
 .country-list { max-height: 454px; overflow-y: auto; }
-.country-row { height: 64px; display: grid; grid-template-columns: minmax(220px, 1fr) 94px 94px 34px; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); }
+.country-row { height: 64px; display: grid; grid-template-columns: minmax(220px, 1fr) 94px 94px 82px 34px; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); }
 .country-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .country-identity div { display: flex; flex-direction: column; }
 .country-identity strong { font-size: 14px; }
@@ -44,6 +44,10 @@
 .country-row input { width: 76px; height: 34px; border: 1px solid var(--line); border-radius: 6px; background: #101117; color: white; padding: 0 8px; }
 .delete-button { width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: #6f7380; font-size: 20px; }
 .delete-button:hover { background: rgba(255,70,90,.12); color: #ff6680; }
+.video-upload { width: 78px; height: 34px; border: 1px solid var(--line); border-radius: 6px; background: #101117; color: #969baa; font-size: 10px; display: grid !important; place-items: center; cursor: pointer; position: relative; }
+.video-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.spokesperson-button { width: 100%; height: 38px; margin-top: 8px; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; background: #20222d; color: #fff; }
+.spokesperson-button:disabled { opacity: .45; }
 .add-country { height: 88px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 74px 74px 118px; gap: 8px; align-items: center; padding: 18px 16px; }
 .add-country input, .award-panel select { height: 42px; border: 1px solid var(--line); border-radius: 7px; background: #101117; color: white; padding: 0 10px; }
 .add-country .code-input { text-transform: uppercase; }
@@ -91,6 +95,8 @@
 .award-toast strong { margin-top: 5px; font-size: 22px; }
 .award-copy { color: #969aaa; font-size: 10px; letter-spacing: 2px; }
 .award-toast b { position: absolute; right: 18px; width: 86px; height: 86px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, #ff3477, #7954dd); font-size: 38px; box-shadow: 0 10px 32px rgba(255,45,120,.28); }
+.spokesperson-overlay { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(7,8,12,.82); backdrop-filter: blur(18px); }
+.spokesperson-overlay video { width: 70%; max-height: 78%; border-radius: 16px; box-shadow: 0 30px 100px rgba(0,0,0,.6); }
 @keyframes awarded { 0% { transform: scale(.98); filter: brightness(1.8); } 100% { transform: scale(1); filter: brightness(1); } }
 @keyframes toast-in { 0% { opacity: 0; transform: translateX(30px); } 100% { opacity: 1; transform: translateX(0); } }
 
