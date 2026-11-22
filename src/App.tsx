@@ -54,6 +54,27 @@ function inferCountryCode(name: string) {
   return COUNTRY_CODES[normalized] || name.trim().slice(0, 2).toUpperCase()
 }
 
+function AnimatedScore({ value, className = '' }: { value: number; className?: string }) {
+  const [displayValue, setDisplayValue] = useState(value)
+
+  useEffect(() => {
+    const previous = displayValue
+    if (previous === value) return
+    const startedAt = performance.now()
+    const duration = 1100
+    const frame = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setDisplayValue(Math.round(previous + (value - previous) * eased))
+      if (progress < 1) requestAnimationFrame(frame)
+    }
+    const animation = requestAnimationFrame(frame)
+    return () => cancelAnimationFrame(animation)
+  }, [value])
+
+  return <b className={`animated-score ${className}`}>{displayValue}</b>
+}
+
 const COUNTRY_PALETTE: Record<string, [string, string]> = {
   AM: ['#f2a900', '#0033a0'], AT: ['#ed2939', '#ffffff'], AZ: ['#00b5e2', '#ef3340'],
   BE: ['#fdda24', '#ef3340'], BG: ['#00966e', '#d62612'], CH: ['#d52b1e', '#ffffff'],
@@ -647,7 +668,7 @@ function Overlay() {
               awardedByPoints.has(country.id) ? 'awarded-country' : '',
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}>
-              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><b>{getTotal(country)}</b>
+              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore value={getTotal(country)} />
               {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
@@ -656,9 +677,11 @@ function Overlay() {
           {points12Country && (
             <div className="twelve-card compact" style={twelveCardStyle}>
               <FlagImage country={points12Country} className="twelve-flag" />
-              <strong>{points12Country.name}</strong>
+              <div className="twelve-name">
+                <strong>{points12Country.name}</strong>
+                <small>{activeCountry ? `from ${activeCountry.name}` : ''}</small>
+              </div>
               <b>12</b>
-              <small>{activeCountry ? `from ${activeCountry.name}` : ''}</small>
             </div>
           )}
         </div>
@@ -671,7 +694,7 @@ function Overlay() {
               awardedByPoints.has(country.id) ? 'awarded-country' : '',
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}>
-              <b>{getTotal(country)}</b><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
+              <AnimatedScore value={getTotal(country)} /><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
               {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
