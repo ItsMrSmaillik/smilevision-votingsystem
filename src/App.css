@@ -86,6 +86,7 @@
 .next-button { background: linear-gradient(135deg, var(--yellow), var(--orange)); color: #171117; }
 .award-button { height: 46px; border: 0; border-radius: 7px; background: linear-gradient(135deg, var(--yellow), var(--orange)); color: #171117; font-weight: 800; }
 .reset-button { height: 38px; border: 0; border-radius: 7px; background: transparent; color: #858994; }
+.full-reset-button { height: 42px; border: 1px solid rgba(255,90,84,.28); border-radius: 7px; background: rgba(255,90,84,.10); color: #ffaaa3; font-weight: 800; }
 
 /* OBS - intentionally transparent */
 .overlay-root.transparent { width: 1920px; height: 1080px; overflow: hidden; color: #fff; background: transparent; position: relative; font-family: Montserrat, Arial, sans-serif; }
@@ -121,6 +122,84 @@
 .leaderboard-flag { width: 58px; height: 58px; border-radius: 7px; }
 .leaderboard-row strong { font-size: 15px; }
 .leaderboard-row b { text-align: right; font-size: 17px; color: var(--yellow); }
+.leaderboard-row { position: relative; overflow: visible; transition:
+  transform 1.15s cubic-bezier(.16,1,.3,1),
+  left 1.15s cubic-bezier(.16,1,.3,1),
+  background 420ms ease,
+  border-color 420ms ease,
+  box-shadow 420ms ease,
+  filter 420ms ease,
+  opacity 420ms ease; }
+.leaderboard-row.awarded-country {
+  border-color: rgba(255,211,101,.68);
+  background:
+    linear-gradient(90deg, rgba(255,204,86,.48), rgba(255,145,52,.22)),
+    rgba(42,31,23,.82);
+  box-shadow:
+    0 0 24px rgba(255,177,61,.25),
+    inset 0 0 18px rgba(255,224,132,.10);
+  transform: translateX(7px) scale(1.025);
+  z-index: 3;
+  animation: awardedRowPulse 1.8s ease-in-out infinite alternate;
+}
+.leaderboard-side.right .leaderboard-row.awarded-country {
+  background:
+    linear-gradient(270deg, rgba(255,204,86,.48), rgba(255,145,52,.22)),
+    rgba(42,31,23,.82);
+  transform: translateX(-7px) scale(1.025);
+}
+.leaderboard-row.awarded-twelve {
+  border-color: rgba(255,234,145,.92);
+  background:
+    linear-gradient(90deg, rgba(255,224,111,.76), rgba(255,123,45,.58)),
+    rgba(74,43,24,.88);
+  box-shadow:
+    0 0 20px rgba(255,203,91,.78),
+    0 0 48px rgba(255,145,51,.42),
+    inset 0 0 22px rgba(255,255,218,.22);
+  transform: translateX(12px) scale(1.055);
+  z-index: 5;
+  animation: twelveRowPulse 1.15s ease-in-out infinite alternate;
+}
+.leaderboard-side.right .leaderboard-row.awarded-twelve {
+  background:
+    linear-gradient(270deg, rgba(255,224,111,.76), rgba(255,123,45,.58)),
+    rgba(74,43,24,.88);
+  transform: translateX(-12px) scale(1.055);
+}
+.awarded-points {
+  position: absolute;
+  right: -38px;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255,226,130,.62);
+  border-radius: 50%;
+  background: rgba(255,185,69,.92);
+  color: #28180d;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 900;
+  box-shadow: 0 0 24px rgba(255,180,70,.45);
+  animation: pointsBadgePop .75s cubic-bezier(.16,1,.3,1) both;
+}
+.leaderboard-side.right .awarded-points {
+  right: auto;
+  left: -38px;
+}
+.leaderboard-row.awarded-twelve .awarded-points {
+  width: 48px;
+  height: 48px;
+  background: #fff3a6;
+  color: #3b210c;
+  font-size: 18px;
+  box-shadow:
+    0 0 18px rgba(255,255,205,.92),
+    0 0 38px rgba(255,172,55,.72);
+}
 .leaderboard-side.right .leaderboard-row { grid-template-columns: 58px 1fr 58px 46px; }
 .leaderboard-side.right .leaderboard-row b { grid-column: 1; text-align: left; }
 .leaderboard-side.right .leaderboard-row strong { grid-column: 2; text-align: right; }
@@ -335,3 +414,22 @@
 @keyframes energyRing { 0% { transform: scale(.94); opacity: .8; } 100% { transform: scale(1.18); opacity: 0; } }
 @keyframes particleBurst { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--angle)) translateY(35px) scale(.3); } 35% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--angle)) translateY(340px) scale(.9); } }
 @keyframes orbFloat { to { transform: translate3d(30px, -24px, 0) scale(1.12); } }
+@keyframes awardedRowPulse {
+  from { filter: brightness(.96) saturate(1); }
+  to { filter: brightness(1.12) saturate(1.18); }
+}
+@keyframes twelveRowPulse {
+  from { filter: brightness(1) saturate(1); }
+  to { filter: brightness(1.28) saturate(1.35); }
+}
+@keyframes pointsBadgePop {
+  0% { opacity: 0; transform: translateY(-50%) scale(.25) rotate(-35deg); }
+  70% { opacity: 1; transform: translateY(-50%) scale(1.18) rotate(4deg); }
+  100% { opacity: 1; transform: translateY(-50%) scale(1) rotate(0); }
+}
+
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 1.05s;
+  animation-timing-function: cubic-bezier(.16, 1, .3, 1);
+}

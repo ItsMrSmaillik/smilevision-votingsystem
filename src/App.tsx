@@ -135,7 +135,12 @@ function useStateSync() {
 
   const refresh = async () => {
     try {
-      setState(await loadState())
+      const nextState = await loadState()
+      if (document.startViewTransition) {
+        document.startViewTransition(() => setState(nextState))
+      } else {
+        setState(nextState)
+      }
       setError('')
     } catch (reason) {
       setError(describeError(reason))
@@ -394,6 +399,26 @@ function Admin() {
     await refresh()
   }
 
+  const resetEverything = async () => {
+    if (!window.confirm('Reset all countries, jury awards, scores and overlay scenes?')) return
+    await Promise.all([
+      supabase.from('jury_votes').delete().neq('jury_country_id', ''),
+      supabase.from('countries').update({
+        jury: 0,
+        televote: 0,
+        revealed_jury: 0,
+        revealed_televote: 0,
+      }).neq('id', ''),
+      updateSettings({
+        visible: false,
+        overlay_scene: 'hidden',
+        active_jury_id: '',
+        step_index: 0,
+      }),
+    ])
+    await refresh()
+  }
+
   const juryVotes = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
 
   return (
@@ -500,6 +525,7 @@ function Admin() {
               <button className="next-button" onClick={nextScene}>Next →</button>
               <button className="award-button" onClick={awardPoints}>Add 12 points to score</button>
               <button className="reset-button" onClick={() => setOnAirScene('hidden')}>Hide overlay</button>
+              <button className="full-reset-button" onClick={resetEverything}>Reset everything</button>
             </section>
           </div>
         )}
@@ -530,6 +556,9 @@ function Overlay() {
   const sortedCountries = [...state.countries].sort((a, b) => getTotal(b) - getTotal(a))
   const leftCountries = sortedCountries.slice(0, 13)
   const rightCountries = sortedCountries.slice(13, 26)
+  const awardedByPoints = new Map(
+    awards.map((award) => [award.recipientCountryId, award.points]),
+  )
 
   if (state.overlayScene === 'spokesperson') {
     return (
@@ -584,12 +613,15 @@ function Overlay() {
       <section className="leaderboard-layout">
         <div className="leaderboard-side left">
           {leftCountries.map((country, index) => (
-            <div className={[
+            <div style={{ viewTransitionName: `country-${country.id}` } as CSSProperties} className={[
               'leaderboard-row',
               country.id === points12Country?.id ? 'moving-left' : '',
               country.id === state.activeJuryId ? 'active-jury-dim' : '',
+              awardedByPoints.has(country.id) ? 'awarded-country' : '',
+              awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}>
               <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><b>{getTotal(country)}</b>
+              {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
         </div>
@@ -605,12 +637,15 @@ function Overlay() {
         </div>
         <div className="leaderboard-side right">
           {rightCountries.map((country, index) => (
-            <div className={[
+            <div style={{ viewTransitionName: `country-${country.id}` } as CSSProperties} className={[
               'leaderboard-row',
               country.id === points12Country?.id ? 'moving-right' : '',
               country.id === state.activeJuryId ? 'active-jury-dim' : '',
+              awardedByPoints.has(country.id) ? 'awarded-country' : '',
+              awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}>
               <b>{getTotal(country)}</b><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
+              {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
         </div>
