@@ -2,6 +2,16 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
+function describeError(reason: unknown) {
+  if (reason instanceof Error) return reason.message
+  if (typeof reason === 'string') return reason
+  try {
+    return JSON.stringify(reason, null, 2)
+  } catch {
+    return String(reason)
+  }
+}
+
 type Country = {
   id: string
   name: string
@@ -67,7 +77,7 @@ function useStateSync() {
         setState(await loadState())
         setError('')
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : String(reason))
+        setError(describeError(reason))
       }
     }
 
@@ -110,7 +120,15 @@ function Admin() {
   const [awardTo, setAwardTo] = useState('')
   const [points, setPoints] = useState(12)
 
-  if (error) return <main className="loading">Supabase setup required: {error}</main>
+  if (error) return (
+    <main className="loading">
+      <pre style={{ maxWidth: 900, whiteSpace: 'pre-wrap', padding: 24 }}>
+        Supabase setup required:
+        {'\n'}
+        {error}
+      </pre>
+    </main>
+  )
   if (!state) return <main className="loading">Loading SmileVision...</main>
 
   const addCountry = async (event: FormEvent) => {
