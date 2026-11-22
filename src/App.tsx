@@ -534,6 +534,9 @@ function Overlay() {
   if (state.overlayScene === 'spokesperson') {
     return (
       <main className="overlay-root transparent">
+        <div className="cinematic-effects" aria-hidden="true">
+          <i /><i /><i /><i /><i /><i />
+        </div>
         <section className="spokesperson-layout">
           <div className="small-awards">
             {smallAwards.map((award) => {
@@ -561,6 +564,9 @@ function Overlay() {
   if (state.overlayScene === 'points12') {
     return (
       <main className="overlay-root transparent">
+        <div className="point-burst" aria-hidden="true">
+          {Array.from({ length: 18 }, (_, index) => <i key={index} style={{ '--i': index } as CSSProperties} />)}
+        </div>
         {points12Country && (
           <div className="twelve-card" style={twelveCardStyle}>
             <FlagImage country={points12Country} className="twelve-flag" />
@@ -574,6 +580,7 @@ function Overlay() {
 
   return (
     <main className="overlay-root transparent">
+      <div className="leaderboard-effects" aria-hidden="true"><i /><i /><i /></div>
       <section className="leaderboard-layout">
         <div className="leaderboard-side left">
           {leftCountries.map((country, index) => (
