@@ -181,7 +181,7 @@ function Admin() {
 
   const addCountry = async (event: FormEvent) => {
     event.preventDefault()
-    await supabase.from('countries').insert({
+    const { error: insertError } = await supabase.from('countries').insert({
       id: crypto.randomUUID(),
       name: name.trim(),
       code: (code || name.slice(0, 2)).trim().toUpperCase(),
@@ -189,6 +189,10 @@ function Admin() {
       flag_url: `https://flagcdn.com/w80/${(code || name.slice(0, 2)).trim().toLowerCase()}.png`,
       order_index: state.countries.length,
     })
+    if (insertError) {
+      window.alert(`Could not add country: ${insertError.message}`)
+      return
+    }
     setName('')
     setCode('')
   }
@@ -216,6 +220,21 @@ function Admin() {
       updateCountry(country.id, { order_index: ordered[swapIndex].orderIndex }),
       updateCountry(ordered[swapIndex].id, { order_index: country.orderIndex }),
     ])
+  }
+
+  const deleteCountry = async (country: Country) => {
+    if (!window.confirm(`Remove ${country.name}?`)) return
+    await supabase.from('jury_votes').delete().or(
+      `jury_country_id.eq.${country.id},recipient_country_id.eq.${country.id}`,
+    )
+    const { error: deleteError } = await supabase
+      .from('countries')
+      .delete()
+      .eq('id', country.id)
+    if (deleteError) {
+      window.alert(`Could not remove ${country.name}: ${deleteError.message}`)
+      return
+    }
   }
 
   const uploadMedia = async (country: Country, kind: 'video' | 'audio', file?: File) => {
@@ -327,7 +346,7 @@ function Admin() {
                     <button onClick={() => moveCountry(country, 1)} disabled={index === state.countries.length - 1}>↓</button>
                     <label className="media-button">{country.videoUrl ? 'MP4 ✓' : 'MP4 +'}<input type="file" accept="video/mp4" onChange={(event) => uploadMedia(country, 'video', event.target.files?.[0])} /></label>
                     <label className="media-button">{country.audioUrl ? 'Audio ✓' : 'Audio +'}<input type="file" accept="audio/*" onChange={(event) => uploadMedia(country, 'audio', event.target.files?.[0])} /></label>
-                    <button className="delete-button" onClick={() => supabase.from('countries').delete().eq('id', country.id)}>×</button>
+                    <button className="delete-button" title={`Remove ${country.name}`} onClick={() => deleteCountry(country)}>×</button>
                   </article>
                 ))}
               </div>
