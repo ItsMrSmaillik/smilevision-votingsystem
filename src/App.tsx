@@ -193,6 +193,20 @@ function Admin() {
     setCode('')
   }
 
+  const fillTestScores = async () => {
+    await Promise.all(state.countries.map((country, index) => {
+      const jury = Math.floor(Math.random() * 220)
+      const televote = Math.floor(Math.random() * 220)
+      return updateCountry(country.id, {
+        jury,
+        televote,
+        revealed_jury: jury,
+        revealed_televote: televote,
+        order_index: index,
+      })
+    }))
+  }
+
   const moveCountry = async (country: Country, direction: -1 | 1) => {
     const ordered = [...state.countries].sort((a, b) => a.orderIndex - b.orderIndex)
     const index = ordered.findIndex((item) => item.id === country.id)
@@ -299,7 +313,10 @@ function Admin() {
         {tab === 'countries' && (
           <div className="single-panel">
             <section className="panel countries-panel">
-              <div className="panel-header"><div><p className="eyebrow">PARTICIPANTS</p><h2>{state.countries.length} countries</h2></div></div>
+              <div className="panel-header">
+                <div><p className="eyebrow">PARTICIPANTS</p><h2>{state.countries.length} countries</h2></div>
+                <button className="test-scores-button" onClick={fillTestScores}>Random test scores</button>
+              </div>
               <div className="ordered-list">
                 {[...state.countries].sort((a, b) => a.orderIndex - b.orderIndex).map((country, index) => (
                   <article className="ordered-row" key={country.id}>
