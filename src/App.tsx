@@ -54,7 +54,17 @@ function inferCountryCode(name: string) {
   return COUNTRY_CODES[normalized] || name.trim().slice(0, 2).toUpperCase()
 }
 
-function AnimatedScore({ value, fromValue, className = '' }: { value: number; fromValue?: number; className?: string }) {
+function AnimatedScore({
+  value,
+  fromValue,
+  className = '',
+  delay = 0,
+}: {
+  value: number
+  fromValue?: number
+  className?: string
+  delay?: number
+}) {
   const [displayValue, setDisplayValue] = useState(fromValue ?? value)
   const previousValue = useRef(value)
 
@@ -62,17 +72,19 @@ function AnimatedScore({ value, fromValue, className = '' }: { value: number; fr
     const previous = fromValue ?? previousValue.current
     previousValue.current = value
     if (previous === value) return
-    const startedAt = performance.now()
-    const duration = 1100
-    const frame = (now: number) => {
-      const progress = Math.min((now - startedAt) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setDisplayValue(Math.round(previous + (value - previous) * eased))
-      if (progress < 1) requestAnimationFrame(frame)
-    }
-    const animation = requestAnimationFrame(frame)
-    return () => cancelAnimationFrame(animation)
-  }, [value])
+    const timeout = window.setTimeout(() => {
+      const startedAt = performance.now()
+      const duration = 900
+      const frame = (now: number) => {
+        const progress = Math.min((now - startedAt) / duration, 1)
+        const eased = 1 - Math.pow(1 - progress, 3)
+        setDisplayValue(Math.round(previous + (value - previous) * eased))
+        if (progress < 1) requestAnimationFrame(frame)
+      }
+      requestAnimationFrame(frame)
+    }, delay)
+    return () => window.clearTimeout(timeout)
+  }, [value, fromValue, delay])
 
   return <b className={`animated-score ${className}`}>{displayValue}</b>
 }
@@ -630,6 +642,9 @@ function Overlay() {
   const awardedByPoints = new Map(
     awards.map((award) => [award.recipientCountryId, award.points]),
   )
+  const awardRevealOrder = [...awards]
+    .sort((a, b) => b.points - a.points)
+    .map((award) => award.recipientCountryId)
 
   if (state.overlayScene === 'spokesperson') {
     return (
@@ -691,9 +706,23 @@ function Overlay() {
               awardedByPoints.has(country.id) ? 'awarded-country' : '',
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}
-              style={{ '--reveal-delay': `${index * 180}ms` } as CSSProperties}>
-              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore value={getTotal(country)} fromValue={awardedByPoints.has(country.id) ? Math.max(0, getTotal(country) - Number(awardedByPoints.get(country.id))) : getTotal(country)} />
-              {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
+              style={{
+                '--reveal-delay': `${index * 180}ms`,
+                viewTransitionName: `country-${country.id}`,
+              } as CSSProperties}>
+              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore
+                value={getTotal(country)}
+                fromValue={awardedByPoints.has(country.id) ? Math.max(0, getTotal(country) - Number(awardedByPoints.get(country.id))) : getTotal(country)}
+                delay={awardRevealOrder.indexOf(country.id) >= 0 ? awardRevealOrder.indexOf(country.id) * 520 : 0}
+              />
+              {awardedByPoints.has(country.id) && (
+                <em
+                  className="awarded-points"
+                  style={{ '--award-delay': `${awardRevealOrder.indexOf(country.id) * 520}ms` } as CSSProperties}
+                >
+                  +{awardedByPoints.get(country.id)}
+                </em>
+              )}
             </div>
           ))}
         </div>
@@ -718,9 +747,23 @@ function Overlay() {
               awardedByPoints.has(country.id) ? 'awarded-country' : '',
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}
-              style={{ '--reveal-delay': `${index * 180}ms` } as CSSProperties}>
-              <AnimatedScore value={getTotal(country)} fromValue={awardedByPoints.has(country.id) ? Math.max(0, getTotal(country) - Number(awardedByPoints.get(country.id))) : getTotal(country)} /><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
-              {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
+              style={{
+                '--reveal-delay': `${index * 180}ms`,
+                viewTransitionName: `country-${country.id}`,
+              } as CSSProperties}>
+              <AnimatedScore
+                value={getTotal(country)}
+                fromValue={awardedByPoints.has(country.id) ? Math.max(0, getTotal(country) - Number(awardedByPoints.get(country.id))) : getTotal(country)}
+                delay={awardRevealOrder.indexOf(country.id) >= 0 ? awardRevealOrder.indexOf(country.id) * 520 : 0}
+              /><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
+              {awardedByPoints.has(country.id) && (
+                <em
+                  className="awarded-points"
+                  style={{ '--award-delay': `${awardRevealOrder.indexOf(country.id) * 520}ms` } as CSSProperties}
+                >
+                  +{awardedByPoints.get(country.id)}
+                </em>
+              )}
             </div>
           ))}
         </div>
