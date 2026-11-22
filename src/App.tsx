@@ -415,15 +415,15 @@ function Admin() {
 
   const awardPoints = async () => {
     if (state.stepIndex >= 1) return
-    const vote = state.juryVotes.find((item) =>
-      item.juryCountryId === onAirId && item.points === 12)
-    if (!vote) return
-    const recipient = state.countries.find((country) => country.id === vote.recipientCountryId)
-    if (!recipient) return
-    await updateCountry(recipient.id, {
-      revealed_jury: recipient.revealedJury + 12,
-      jury: recipient.jury + 12,
-    })
+    const awards = state.juryVotes.filter((item) => item.juryCountryId === onAirId)
+    for (const award of awards) {
+      const recipient = state.countries.find((country) => country.id === award.recipientCountryId)
+      if (!recipient) continue
+      await updateCountry(recipient.id, {
+        revealed_jury: recipient.revealedJury + award.points,
+        jury: recipient.jury + award.points,
+      })
+    }
     await updateSettings({ step_index: 1 })
     await refresh()
   }
@@ -671,7 +671,7 @@ function Overlay() {
           <div className="twelve-card" style={twelveCardStyle}>
             <FlagImage country={points12Country} className="twelve-flag" />
             <strong>{points12Country.name}</strong>
-            <b>12</b>
+            <b><span>+12</span><small>12</small></b>
           </div>
         )}
       </main>
@@ -692,7 +692,7 @@ function Overlay() {
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}
               style={{ '--reveal-delay': `${index * 180}ms` } as CSSProperties}>
-              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore value={getTotal(country)} fromValue={country.id === points12Country?.id ? Math.max(0, getTotal(country) - 12) : getTotal(country)} />
+              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore value={getTotal(country)} fromValue={awardedByPoints.has(country.id) ? Math.max(0, getTotal(country) - Number(awardedByPoints.get(country.id))) : getTotal(country)} />
               {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
@@ -719,7 +719,7 @@ function Overlay() {
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}
               style={{ '--reveal-delay': `${index * 180}ms` } as CSSProperties}>
-              <AnimatedScore value={getTotal(country)} fromValue={country.id === points12Country?.id ? Math.max(0, getTotal(country) - 12) : getTotal(country)} /><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
+              <AnimatedScore value={getTotal(country)} fromValue={awardedByPoints.has(country.id) ? Math.max(0, getTotal(country) - Number(awardedByPoints.get(country.id))) : getTotal(country)} /><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
               {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
