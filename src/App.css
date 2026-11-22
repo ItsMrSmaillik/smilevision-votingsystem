@@ -93,7 +93,7 @@
 
 .spokesperson-layout { position: absolute; inset: 0; display: grid; grid-template-columns: 35% 30% 35%; background: transparent; }
 .small-awards { padding: 180px 40px 60px 72px; display: flex; flex-direction: column; justify-content: center; gap: 9px; }
-.small-award-row { height: 64px; display: grid; grid-template-columns: 64px 1fr 68px; align-items: center; border: 1px solid rgba(255,220,126,.16); border-radius: 10px; background: linear-gradient(90deg, rgba(37,25,20,.72), rgba(255,167,48,.10)); backdrop-filter: blur(8px); padding: 0 8px; box-shadow: 0 12px 36px rgba(255,139,43,.08); animation: slideLeft .55s ease both; }
+.small-award-row { height: 64px; display: grid; grid-template-columns: 64px 1fr 68px; align-items: center; border: 1px solid rgba(255,220,126,.16); border-radius: 10px; background: rgba(37,25,20,.82); padding: 0 8px; box-shadow: 0 12px 36px rgba(255,139,43,.08); }
 .small-award-row span { font-size: 36px; text-align: center; }
 .small-award-row strong { font-size: 18px; }
 .small-award-row strong {
@@ -118,7 +118,7 @@
 .visualizer-bars { height: 220px; display: flex; align-items: end; justify-content: center; gap: 8px; padding: 20px; }
 .visualizer-bars i { width: 14px; height: 20%; border-radius: 12px; background: linear-gradient(180deg, var(--yellow), var(--orange), #ff6b32); box-shadow: 0 0 22px rgba(255,170,54,.42); animation: bars .72s ease-in-out infinite alternate; }
 
-.twelve-card { --card-primary: #ffd45a; --card-secondary: #ff8a32; position: absolute; left: 50%; top: 50%; width: 520px; height: 240px; transform: translate(-50%, -50%); border: 1px solid rgba(255,223,126,.34); border-radius: 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--card-primary) 72%, transparent), color-mix(in srgb, var(--card-secondary) 72%, transparent)); backdrop-filter: none; color: #171117; display: grid; grid-template-columns: 170px 1fr 110px; align-items: center; padding: 28px; box-shadow: 0 24px 80px color-mix(in srgb, var(--card-secondary) 28%, transparent), inset 0 0 20px rgba(255,255,255,.12); animation: twelveIn .65s cubic-bezier(.2,.8,.2,1) both; }
+.twelve-card { --card-primary: #ffd45a; --card-secondary: #ff8a32; position: absolute; left: 50%; top: 50%; width: 520px; height: 240px; transform: translate(-50%, -50%); border: 1px solid rgba(255,223,126,.34); border-radius: 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--card-primary) 72%, transparent), color-mix(in srgb, var(--card-secondary) 72%, transparent)); backdrop-filter: none; color: #171117; display: grid; grid-template-columns: 170px 1fr 110px; align-items: center; padding: 28px; box-shadow: none; animation: twelveIn .65s cubic-bezier(.2,.8,.2,1) both; }
 .twelve-flag { width: 140px; height: 140px; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,.22); font-size: 84px; }
 .twelve-card strong { font-family: Jorick, Montserrat, Arial, sans-serif; font-size: 38px; text-align: center; }
 .twelve-card strong,
@@ -128,7 +128,7 @@
   margin: 0 14px;
   text-shadow: 0 3px 16px rgba(255,255,255,.20);
 }
-.twelve-card b { width: 92px; height: 92px; display: grid; place-items: center; border-radius: 50%; background: #171117; color: var(--yellow); font-size: 42px; box-shadow: 0 0 38px rgba(255,255,255,.25); }
+.twelve-card b { width: 92px; height: 92px; display: grid; place-items: center; border-radius: 12px; background: #171117; color: var(--yellow); font-size: 42px; box-shadow: none; }
 .twelve-card b {
   border-radius: 12px;
   grid-template-rows: 1fr 1fr;
@@ -147,10 +147,9 @@
 
 .leaderboard-layout { position: absolute; inset: 0; display: grid; grid-template-columns: 35% 30% 35%; }
 .leaderboard-under-card {
-  filter: blur(7px) brightness(.58) saturate(.82);
   transform: scale(.985);
-  opacity: .86;
-  transition: filter .55s ease, transform .55s ease, opacity .55s ease;
+  opacity: .72;
+  transition: transform .5s ease, opacity .5s ease;
 }
 .leaderboard-layout:not(.leaderboard-under-card) {
   transition: filter .55s ease, transform .55s ease, opacity .55s ease;
@@ -158,8 +157,8 @@
 .leaderboard-side { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
 .leaderboard-side.left { padding: 120px 26px 80px 72px; }
 .leaderboard-side.right { padding: 120px 72px 80px 26px; }
-.leaderboard-row { height: 58px; display: grid; grid-template-columns: 46px 58px 1fr 58px; align-items: center; border: 1px solid rgba(255,218,112,.12); border-radius: 8px; background: linear-gradient(90deg, rgba(28,23,20,.82), rgba(255,170,64,.10)); backdrop-filter: blur(7px); padding: 0 8px; animation: slideLeft .55s cubic-bezier(.2,.8,.2,1) both; }
-.leaderboard-side.right .leaderboard-row { background: linear-gradient(270deg, rgba(28,23,20,.82), rgba(255,170,64,.10)); animation-name: slideRight; }
+.leaderboard-row { height: 58px; display: grid; grid-template-columns: 46px 58px 1fr 58px; align-items: center; border: 1px solid rgba(255,218,112,.12); border-radius: 8px; background: rgba(28,23,20,.82); contain: layout paint; padding: 0 8px; }
+.leaderboard-side.right .leaderboard-row { background: rgba(28,23,20,.82); }
 .leaderboard-rank { color: #d7b877; font-size: 12px; text-align: center; }
 .leaderboard-rank {
   color: #fff1be;
@@ -212,15 +211,10 @@
 .leaderboard-row b { text-align: right; font-size: 17px; color: var(--yellow); }
 .leaderboard-row { position: relative; overflow: visible; transition:
   transform 1.15s cubic-bezier(.16,1,.3,1),
-  left 1.15s cubic-bezier(.16,1,.3,1),
-  background 420ms ease,
-  border-color 420ms ease,
-  box-shadow 420ms ease,
-  filter 420ms ease,
   opacity 420ms ease; }
 .leaderboard-row {
-  transition-duration: 500ms, 500ms, 420ms, 420ms, 420ms, 420ms, 420ms;
-  transition-delay: 1000ms, 1000ms, 1000ms, 1000ms, 1000ms, 1000ms, 1000ms;
+  transition-duration: 500ms, 420ms;
+  transition-delay: 1000ms, 1000ms;
 }
 .leaderboard-row {
   animation-delay: var(--reveal-delay, 0ms);
@@ -230,12 +224,9 @@
   background:
     linear-gradient(90deg, rgba(255,204,86,.48), rgba(255,145,52,.22)),
     rgba(42,31,23,.82);
-  box-shadow:
-    0 0 24px rgba(255,177,61,.25),
-    inset 0 0 18px rgba(255,224,132,.10);
+  box-shadow: 0 4px 12px rgba(255,177,61,.16);
   transform: translateX(7px) scale(1.025);
   z-index: 3;
-  animation: awardedRowPulse 1.8s ease-in-out infinite alternate;
 }
 .leaderboard-side.right .leaderboard-row.awarded-country {
   background:
@@ -248,13 +239,9 @@
   background:
     linear-gradient(90deg, rgba(255,224,111,.76), rgba(255,123,45,.58)),
     rgba(74,43,24,.88);
-  box-shadow:
-    0 0 20px rgba(255,203,91,.78),
-    0 0 48px rgba(255,145,51,.42),
-    inset 0 0 22px rgba(255,255,218,.22);
+  box-shadow: 0 6px 18px rgba(255,145,51,.24);
   transform: translateX(12px) scale(1.055);
   z-index: 5;
-  animation: twelveRowPulse 1.15s ease-in-out infinite alternate;
 }
 .leaderboard-side.right .leaderboard-row.awarded-twelve {
   background:
@@ -335,9 +322,9 @@
   text-shadow: 0 1px 8px rgba(255,255,255,.28);
   white-space: nowrap;
 }
-.twelve-card.compact b { width: 58px; height: 58px; font-size: 26px; }
-.moving-left, .moving-right { border-color: rgba(255,215,100,.48); box-shadow: 0 0 30px rgba(255,151,52,.22); }
-.active-jury-dim { filter: saturate(.35) brightness(.58); opacity: .62; border-color: rgba(255,255,255,.04); }
+.twelve-card.compact b { width: 58px; height: 58px; font-size: 26px; border-radius: 10px; box-shadow: none; }
+.moving-left, .moving-right { border-color: rgba(255,215,100,.48); box-shadow: none; }
+.active-jury-dim { opacity: .62; border-color: rgba(255,255,255,.04); }
 .jury-random-actions { display: flex; gap: 8px; }
 .jury-random-actions button { height: 36px; border: 1px solid rgba(255,210,106,.24); border-radius: 7px; background: linear-gradient(135deg, rgba(255,212,90,.14), rgba(255,138,50,.14)); color: #ffd875; padding: 0 10px; }
 
@@ -349,15 +336,7 @@
 
 /* Cinematic scoreboard effects */
 .overlay-root.transparent::before {
-  content: "";
-  position: absolute;
-  inset: -20%;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at 18% 72%, rgba(255,152,45,.12), transparent 23%),
-    radial-gradient(ellipse at 82% 28%, rgba(255,204,82,.10), transparent 24%);
-  filter: blur(18px);
-  animation: atmosphereDrift 14s ease-in-out infinite alternate;
+  content: none;
 }
 
 .cinematic-effects,
@@ -368,6 +347,9 @@
   pointer-events: none;
   overflow: hidden;
 }
+.cinematic-effects,
+.leaderboard-effects,
+.point-burst { display: none; }
 
 .cinematic-effects i {
   position: absolute;
@@ -395,7 +377,6 @@
   z-index: 2;
   border: 1px solid rgba(255,219,118,.24);
   background: linear-gradient(135deg, rgba(13,18,30,.28), rgba(255,176,54,.08));
-  backdrop-filter: blur(12px);
   animation: mediaReveal 1s cubic-bezier(.16,1,.3,1) both;
   box-shadow:
     0 28px 90px rgba(0,0,0,.38),
@@ -414,10 +395,7 @@
 .small-award-row,
 .leaderboard-row {
   border-radius: 12px;
-  backdrop-filter: blur(10px) saturate(1.15);
-  box-shadow:
-    0 10px 24px rgba(0,0,0,.14),
-    inset 0 1px rgba(255,255,255,.06);
+  box-shadow: 0 6px 16px rgba(0,0,0,.12);
 }
 
 .small-award-row b {
@@ -442,9 +420,7 @@
 
 .twelve-card.compact {
   animation: compactIn 1.15s cubic-bezier(.16,1,.3,1) both;
-  box-shadow:
-    0 16px 55px color-mix(in srgb, var(--card-secondary) 22%, transparent),
-    inset 0 1px rgba(255,255,255,.22);
+  box-shadow: none;
 }
 
 .point-burst i {
@@ -462,6 +438,7 @@
   animation: particleBurst 1.8s cubic-bezier(.16,1,.3,1) both;
   animation-delay: calc(var(--i) * 18ms);
 }
+.point-burst { display: none; }
 
 .leaderboard-row:nth-child(-n+13) { animation-delay: calc(var(--row, 1) * 55ms); }
 .leaderboard-side.left .leaderboard-row:nth-child(1) { --row: 1; }
@@ -479,7 +456,7 @@
 .leaderboard-side.left .leaderboard-row:nth-child(13) { --row: 13; }
 
 .leaderboard-side.right .leaderboard-row {
-  animation: slideRight 1s cubic-bezier(.16,1,.3,1) both;
+  animation: none;
 }
 
 .leaderboard-side.right .leaderboard-row:nth-child(1) { animation-delay: .05s; }
@@ -502,11 +479,8 @@
 
 .moving-left,
 .moving-right {
-  animation-duration: 1.1s;
   border-color: rgba(255,225,121,.72);
-  box-shadow:
-    0 0 32px rgba(255,174,58,.34),
-    inset 0 0 18px rgba(255,219,112,.10);
+  box-shadow: none;
 }
 
 @keyframes atmosphereDrift { to { transform: translate3d(4%, -3%, 0) scale(1.08); } }
@@ -532,14 +506,12 @@
 }
 
 @keyframes pointsBadgeSlideIn {
-  0% { opacity: 0; transform: translate(22px, -50%) scale(.55); filter: blur(8px); }
-  55% { opacity: 1; transform: translate(-8px, -50%) scale(1.16); filter: blur(0); }
-  100% { opacity: 1; transform: translate(0, -50%) scale(1); filter: blur(0); }
+  0% { opacity: 0; transform: translate(10px, -50%) scale(.8); }
+  100% { opacity: 1; transform: translate(0, -50%) scale(1); }
 }
 @keyframes totalScoreTick {
-  0% { transform: scale(.82); filter: brightness(.7); }
-  45% { transform: scale(1.18); filter: brightness(1.28); }
-  100% { transform: scale(1); filter: brightness(1); }
+  0% { transform: scale(.9); }
+  100% { transform: scale(1); }
 }
 @keyframes sourceNameReveal {
   0% { opacity: 0; transform: translateY(-50%) scale(.86); clip-path: inset(100% 0 0 0); }

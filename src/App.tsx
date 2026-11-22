@@ -75,10 +75,14 @@ function AnimatedScore({
     const timeout = window.setTimeout(() => {
       const startedAt = performance.now()
       const duration = 500
+      let lastRendered = -Infinity
       const frame = (now: number) => {
         const progress = Math.min((now - startedAt) / duration, 1)
         const eased = 1 - Math.pow(1 - progress, 3)
-        setDisplayValue(Math.round(previous + (value - previous) * eased))
+        if (now - lastRendered >= 33 || progress === 1) {
+          setDisplayValue(Math.round(previous + (value - previous) * eased))
+          lastRendered = now
+        }
         if (progress < 1) requestAnimationFrame(frame)
       }
       requestAnimationFrame(frame)
@@ -255,11 +259,24 @@ async function loadState(): Promise<State> {
 function useStateSync() {
   const [state, setState] = useState<State | null>(null)
   const [error, setError] = useState('')
+  const previousOrder = useRef('')
 
   const refresh = async () => {
     try {
       const nextState = await loadState()
-      if (window.location.pathname === '/overlay' && document.startViewTransition) {
+      const nextOrder = [...nextState.countries]
+        .sort((a, b) => (b.revealedJury + b.revealedTelevote) - (a.revealedJury + a.revealedTelevote))
+        .map((country) => country.id)
+        .join(',')
+      const orderChanged = previousOrder.current && previousOrder.current !== nextOrder
+      previousOrder.current = nextOrder
+
+      if (
+        window.location.pathname === '/overlay' &&
+        nextState.overlayScene === 'leaderboard' &&
+        orderChanged &&
+        document.startViewTransition
+      ) {
         document.startViewTransition(() => setState(nextState))
       } else {
         setState(nextState)
