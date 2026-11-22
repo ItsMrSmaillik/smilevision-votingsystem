@@ -101,13 +101,6 @@ function LeaderboardContent({
   rightCountries: Country[]
 }) {
   const awardedByPoints = new Map(awards.map((award) => [award.recipientCountryId, award.points]))
-  const awardRevealOrder = [...awards].sort((a, b) => b.points - a.points).map((award) => award.recipientCountryId)
-  const awardDelay = (countryId: string) => {
-    const index = awardRevealOrder.indexOf(countryId)
-    if (index < 0) return 0
-    return Math.round((index / Math.max(1, awardRevealOrder.length - 1)) * 250)
-  }
-
   return (
     <>
       <div className="leaderboard-side left">
@@ -122,7 +115,7 @@ function LeaderboardContent({
                 points === 12 ? 'awarded-twelve' : '',
               ].filter(Boolean).join(' ')}
               key={country.id}
-              style={{ '--reveal-delay': `${Math.min(500, index * 20)}ms` } as CSSProperties}
+              style={{ '--reveal-delay': '0ms' } as CSSProperties}
             >
               <span className="leaderboard-rank">{index + 1}</span>
               <FlagImage country={country} className="leaderboard-flag" />
@@ -135,7 +128,7 @@ function LeaderboardContent({
               {points && (
                 <em
                   className="awarded-points"
-                  style={{ '--award-delay': `${awardDelay(country.id)}ms` } as CSSProperties}
+                  style={{ '--award-delay': '0ms' } as CSSProperties}
                 >
                   +{points}
                 </em>
@@ -157,7 +150,7 @@ function LeaderboardContent({
                 points === 12 ? 'awarded-twelve' : '',
               ].filter(Boolean).join(' ')}
               key={country.id}
-              style={{ '--reveal-delay': `${Math.min(500, index * 20)}ms` } as CSSProperties}
+              style={{ '--reveal-delay': '0ms' } as CSSProperties}
             >
               <AnimatedScore
                 value={value}
@@ -170,7 +163,7 @@ function LeaderboardContent({
               {points && (
                 <em
                   className="awarded-points"
-                  style={{ '--award-delay': `${awardDelay(country.id)}ms` } as CSSProperties}
+                  style={{ '--award-delay': '0ms' } as CSSProperties}
                 >
                   +{points}
                 </em>
@@ -730,14 +723,6 @@ function Overlay() {
   const awardedByPoints = new Map(
     awards.map((award) => [award.recipientCountryId, award.points]),
   )
-  const awardRevealOrder = [...awards]
-    .sort((a, b) => b.points - a.points)
-    .map((award) => award.recipientCountryId)
-  const awardDelay = (countryId: string) => {
-    const index = awardRevealOrder.indexOf(countryId)
-    if (index < 0) return 0
-    return Math.round((index / Math.max(1, awardRevealOrder.length - 1)) * 500)
-  }
 
   if (state.overlayScene === 'spokesperson') {
     return (
@@ -808,8 +793,7 @@ function Overlay() {
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}
               style={{
-                '--reveal-delay': `${Math.min(500, index * 20)}ms`,
-                viewTransitionName: `country-${country.id}`,
+                '--reveal-delay': '0ms',
               } as CSSProperties}>
               <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore
                 value={getTotal(country)}
@@ -819,7 +803,7 @@ function Overlay() {
               {awardedByPoints.has(country.id) && (
                 <em
                   className="awarded-points"
-                  style={{ '--award-delay': `${awardDelay(country.id)}ms` } as CSSProperties}
+                  style={{ '--award-delay': '0ms' } as CSSProperties}
                 >
                   +{awardedByPoints.get(country.id)}
                 </em>
@@ -849,8 +833,7 @@ function Overlay() {
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
             ].filter(Boolean).join(' ')} key={country.id}
               style={{
-                '--reveal-delay': `${Math.min(500, index * 20)}ms`,
-                viewTransitionName: `country-${country.id}`,
+                '--reveal-delay': '0ms',
               } as CSSProperties}>
               <AnimatedScore
                 value={getTotal(country)}
@@ -860,7 +843,7 @@ function Overlay() {
               {awardedByPoints.has(country.id) && (
                 <em
                   className="awarded-points"
-                  style={{ '--award-delay': `${awardDelay(country.id)}ms` } as CSSProperties}
+                  style={{ '--award-delay': '0ms' } as CSSProperties}
                 >
                   +{awardedByPoints.get(country.id)}
                 </em>
