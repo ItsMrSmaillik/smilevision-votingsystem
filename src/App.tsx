@@ -161,7 +161,7 @@ function useStateSync() {
       supabase.removeChannel(channel)
     }
   }, [])
-  return { state, error, refresh }
+  return { state, error, refresh, setState }
 }
 
 async function updateSettings(patch: Record<string, unknown>) {
@@ -216,7 +216,7 @@ function AdminLogin() {
 }
 
 function Admin() {
-  const { state, error, refresh } = useStateSync()
+  const { state, error, refresh, setState } = useStateSync()
   const [tab, setTab] = useState<'countries' | 'jury' | 'onair'>('countries')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -397,21 +397,52 @@ function Admin() {
 
   const resetEverything = async () => {
     if (!window.confirm('Reset all countries, jury awards, scores and overlay scenes?')) return
-    await Promise.all([
-      supabase.from('jury_votes').delete().neq('jury_country_id', ''),
-      supabase.from('countries').update({
+    const { error: votesError } = await supabase
+      .from('jury_votes')
+      .delete()
+      .not('jury_country_id', 'is', null)
+
+    const { error: countriesError } = await supabase
+      .from('countries')
+      .update({
         jury: 0,
         televote: 0,
         revealed_jury: 0,
         revealed_televote: 0,
-      }).neq('id', ''),
-      updateSettings({
+      })
+      .not('id', 'is', null)
+
+    const { error: settingsError } = await supabase
+      .from('settings')
+      .update({
         visible: false,
         overlay_scene: 'hidden',
         active_jury_id: '',
         step_index: 0,
-      }),
-    ])
+      })
+      .eq('id', 'main')
+
+    const resetError = votesError || countriesError || settingsError
+    if (resetError) {
+      window.alert(`Reset failed: ${resetError.message}`)
+      return
+    }
+
+    setState((current) => current ? {
+      ...current,
+      visible: false,
+      overlayScene: 'hidden',
+      activeJuryId: '',
+      stepIndex: 0,
+      juryVotes: [],
+      countries: current.countries.map((country) => ({
+        ...country,
+        jury: 0,
+        televote: 0,
+        revealedJury: 0,
+        revealedTelevote: 0,
+      })),
+    } : current)
     await refresh()
   }
 
