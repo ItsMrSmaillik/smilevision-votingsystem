@@ -89,6 +89,82 @@ function AnimatedScore({
   return <b className={`animated-score ${className}`}>{displayValue}</b>
 }
 
+function LeaderboardContent({
+  points12Country,
+  awards,
+  leftCountries,
+  rightCountries,
+}: {
+  points12Country: Country | undefined
+  awards: JuryVote[]
+  leftCountries: Country[]
+  rightCountries: Country[]
+}) {
+  const awardedByPoints = new Map(awards.map((award) => [award.recipientCountryId, award.points]))
+  const awardRevealOrder = [...awards].sort((a, b) => b.points - a.points).map((award) => award.recipientCountryId)
+
+  return (
+    <>
+      <div className="leaderboard-side left">
+        {leftCountries.map((country, index) => {
+          const value = country.revealedJury + country.revealedTelevote
+          const points = awardedByPoints.get(country.id)
+          return (
+            <div
+              className={[
+                'leaderboard-row',
+                points ? 'awarded-country' : '',
+                points === 12 ? 'awarded-twelve' : '',
+              ].filter(Boolean).join(' ')}
+              key={country.id}
+              style={{ '--reveal-delay': `${index * 500}ms` } as CSSProperties}
+            >
+              <span className="leaderboard-rank">{index + 1}</span>
+              <FlagImage country={country} className="leaderboard-flag" />
+              <strong>{country.name}</strong>
+              <AnimatedScore
+                value={value}
+                fromValue={points ? Math.max(0, value - points) : value}
+                delay={points ? awardRevealOrder.indexOf(country.id) * 520 : 0}
+              />
+              {points && <em className="awarded-points">+{points}</em>}
+            </div>
+          )
+        })}
+      </div>
+      <div className="leaderboard-center" />
+      <div className="leaderboard-side right">
+        {rightCountries.map((country, index) => {
+          const value = country.revealedJury + country.revealedTelevote
+          const points = awardedByPoints.get(country.id)
+          return (
+            <div
+              className={[
+                'leaderboard-row',
+                points ? 'awarded-country' : '',
+                points === 12 ? 'awarded-twelve' : '',
+              ].filter(Boolean).join(' ')}
+              key={country.id}
+              style={{ '--reveal-delay': `${index * 500}ms` } as CSSProperties}
+            >
+              <AnimatedScore
+                value={value}
+                fromValue={points ? Math.max(0, value - points) : value}
+                delay={points ? awardRevealOrder.indexOf(country.id) * 520 : 0}
+              />
+              <strong>{country.name}</strong>
+              <FlagImage country={country} className="leaderboard-flag" />
+              <span className="leaderboard-rank">{index + 14}</span>
+              {points && <em className="awarded-points">+{points}</em>}
+            </div>
+          )
+        })}
+      </div>
+      {points12Country && <div className="leaderboard-hidden-card-marker" />}
+    </>
+  )
+}
+
 const COUNTRY_PALETTE: Record<string, [string, string]> = {
   AM: ['#f2a900', '#0033a0'], AT: ['#ed2939', '#ffffff'], AZ: ['#00b5e2', '#ef3340'],
   BE: ['#fdda24', '#ef3340'], BG: ['#00966e', '#d62612'], CH: ['#d52b1e', '#ffffff'],
@@ -612,13 +688,6 @@ function Admin() {
 function Overlay() {
   const { state, error } = useStateSync()
 
-  useEffect(() => {
-    if (state?.overlayScene !== 'points12') return
-    const timer = window.setTimeout(() => {
-      updateSettings({ overlay_scene: 'leaderboard', visible: true })
-    }, 5000)
-    return () => window.clearTimeout(timer)
-  }, [state?.overlayScene])
 
   if (error || !state || !state.visible || state.overlayScene === 'hidden') return <main className="overlay-root transparent" />
 
@@ -682,6 +751,14 @@ function Overlay() {
         <div className="point-burst" aria-hidden="true">
           {Array.from({ length: 18 }, (_, index) => <i key={index} style={{ '--i': index } as CSSProperties} />)}
         </div>
+        <section className="leaderboard-layout leaderboard-under-card">
+          <LeaderboardContent
+            points12Country={points12Country}
+            awards={awards}
+            leftCountries={leftCountries}
+            rightCountries={rightCountries}
+          />
+        </section>
         {points12Country && (
           <div className="twelve-card" style={twelveCardStyle}>
             <FlagImage country={points12Country} className="twelve-flag" />

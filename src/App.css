@@ -146,6 +146,15 @@
 }
 
 .leaderboard-layout { position: absolute; inset: 0; display: grid; grid-template-columns: 35% 30% 35%; }
+.leaderboard-under-card {
+  filter: blur(7px) brightness(.58) saturate(.82);
+  transform: scale(.985);
+  opacity: .86;
+  transition: filter .55s ease, transform .55s ease, opacity .55s ease;
+}
+.leaderboard-layout:not(.leaderboard-under-card) {
+  transition: filter .55s ease, transform .55s ease, opacity .55s ease;
+}
 .leaderboard-side { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
 .leaderboard-side.left { padding: 120px 26px 80px 72px; }
 .leaderboard-side.right { padding: 120px 72px 80px 26px; }
