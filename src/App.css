@@ -174,11 +174,11 @@
 .animated-score {
   display: grid;
   place-items: center;
-  min-width: 58px;
+  min-width: 48px;
   height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255,216,100,.96), rgba(255,145,54,.96));
-  color: #24150d;
+  border-radius: 0;
+  background: transparent;
+  color: #fff1b5;
   font-size: 24px;
   font-weight: 900;
   text-shadow: none;
@@ -196,6 +196,9 @@
   box-shadow 420ms ease,
   filter 420ms ease,
   opacity 420ms ease; }
+.leaderboard-row {
+  animation-delay: var(--reveal-delay, 0ms);
+}
 .leaderboard-row.awarded-country {
   border-color: rgba(255,211,101,.68);
   background:

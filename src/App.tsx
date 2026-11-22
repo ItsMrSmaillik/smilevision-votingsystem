@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type CSSProperties } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -54,11 +54,13 @@ function inferCountryCode(name: string) {
   return COUNTRY_CODES[normalized] || name.trim().slice(0, 2).toUpperCase()
 }
 
-function AnimatedScore({ value, className = '' }: { value: number; className?: string }) {
-  const [displayValue, setDisplayValue] = useState(value)
+function AnimatedScore({ value, fromValue, className = '' }: { value: number; fromValue?: number; className?: string }) {
+  const [displayValue, setDisplayValue] = useState(fromValue ?? value)
+  const previousValue = useRef(value)
 
   useEffect(() => {
-    const previous = displayValue
+    const previous = fromValue ?? previousValue.current
+    previousValue.current = value
     if (previous === value) return
     const startedAt = performance.now()
     const duration = 1100
@@ -157,7 +159,11 @@ function useStateSync() {
   const refresh = async () => {
     try {
       const nextState = await loadState()
-      setState(nextState)
+      if (window.location.pathname === '/overlay' && document.startViewTransition) {
+        document.startViewTransition(() => setState(nextState))
+      } else {
+        setState(nextState)
+      }
       setError('')
     } catch (reason) {
       setError(describeError(reason))
@@ -394,7 +400,11 @@ function Admin() {
   const nextScene = async () => {
     const scenes: State['overlayScene'][] = ['hidden', 'spokesperson', 'points12', 'leaderboard', 'hidden']
     const current = scenes.indexOf(state.overlayScene)
-    await setOnAirScene(scenes[current === -1 ? 1 : Math.min(current + 1, scenes.length - 1)])
+    const next = scenes[current === -1 ? 1 : Math.min(current + 1, scenes.length - 1)]
+    if (next === 'points12') {
+      await awardPoints()
+    }
+    await setOnAirScene(next, next === 'points12' ? 1 : state.stepIndex)
   }
 
   const previousScene = async () => {
@@ -404,6 +414,7 @@ function Admin() {
   }
 
   const awardPoints = async () => {
+    if (state.stepIndex >= 1) return
     const vote = state.juryVotes.find((item) =>
       item.juryCountryId === onAirId && item.points === 12)
     if (!vote) return
@@ -413,6 +424,7 @@ function Admin() {
       revealed_jury: recipient.revealedJury + 12,
       jury: recipient.jury + 12,
     })
+    await updateSettings({ step_index: 1 })
     await refresh()
   }
 
@@ -565,7 +577,10 @@ function Admin() {
           <div className="onair-layout">
             <section className="panel onair-controls">
               <p className="eyebrow">ACTIVE JURY COUNTRY</p>
-              <select value={onAirId} onChange={(event) => setSelectedOnAirId(event.target.value)}>
+              <select value={onAirId} onChange={(event) => {
+                setSelectedOnAirId(event.target.value)
+                updateSettings({ active_jury_id: event.target.value, step_index: 0 })
+              }}>
                 {state.countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
               </select>
               <div className="scene-status"><span className={state.overlayScene !== 'hidden' ? 'live-dot' : ''} /> Scene: {state.overlayScene}</div>
@@ -584,6 +599,14 @@ function Admin() {
 
 function Overlay() {
   const { state, error } = useStateSync()
+
+  useEffect(() => {
+    if (state?.overlayScene !== 'points12') return
+    const timer = window.setTimeout(() => {
+      updateSettings({ overlay_scene: 'leaderboard', visible: true })
+    }, 5000)
+    return () => window.clearTimeout(timer)
+  }, [state?.overlayScene])
 
   if (error || !state || !state.visible || state.overlayScene === 'hidden') return <main className="overlay-root transparent" />
 
@@ -667,8 +690,9 @@ function Overlay() {
               country.id === state.activeJuryId ? 'active-jury-dim' : '',
               awardedByPoints.has(country.id) ? 'awarded-country' : '',
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
-            ].filter(Boolean).join(' ')} key={country.id}>
-              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore value={getTotal(country)} />
+            ].filter(Boolean).join(' ')} key={country.id}
+              style={{ '--reveal-delay': `${index * 180}ms` } as CSSProperties}>
+              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><AnimatedScore value={getTotal(country)} fromValue={country.id === points12Country?.id ? Math.max(0, getTotal(country) - 12) : getTotal(country)} />
               {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
@@ -693,8 +717,9 @@ function Overlay() {
               country.id === state.activeJuryId ? 'active-jury-dim' : '',
               awardedByPoints.has(country.id) ? 'awarded-country' : '',
               awardedByPoints.get(country.id) === 12 ? 'awarded-twelve' : '',
-            ].filter(Boolean).join(' ')} key={country.id}>
-              <AnimatedScore value={getTotal(country)} /><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
+            ].filter(Boolean).join(' ')} key={country.id}
+              style={{ '--reveal-delay': `${index * 180}ms` } as CSSProperties}>
+              <AnimatedScore value={getTotal(country)} fromValue={country.id === points12Country?.id ? Math.max(0, getTotal(country) - 12) : getTotal(country)} /><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
               {awardedByPoints.has(country.id) && <em className="awarded-points">+{awardedByPoints.get(country.id)}</em>}
             </div>
           ))}
