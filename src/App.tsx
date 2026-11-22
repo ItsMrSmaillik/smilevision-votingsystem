@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type CSSProperties } from 'react'
 import { supabase } from './supabase'
 import './App.css'
 
@@ -52,6 +52,27 @@ const COUNTRY_CODES: Record<string, string> = {
 function inferCountryCode(name: string) {
   const normalized = name.trim().toLowerCase()
   return COUNTRY_CODES[normalized] || name.trim().slice(0, 2).toUpperCase()
+}
+
+const COUNTRY_PALETTE: Record<string, [string, string]> = {
+  AM: ['#f2a900', '#0033a0'], AT: ['#ed2939', '#ffffff'], AZ: ['#00b5e2', '#ef3340'],
+  BE: ['#fdda24', '#ef3340'], BG: ['#00966e', '#d62612'], CH: ['#d52b1e', '#ffffff'],
+  DE: ['#ffce00', '#dd0000'], DK: ['#c60c30', '#ffffff'], EE: ['#4891d9', '#000000'],
+  ES: ['#aa151b', '#f1bf00'], FI: ['#003580', '#ffffff'], FR: ['#0055a4', '#ef4135'],
+  GB: ['#012169', '#c8102e'], GE: ['#ffffff', '#e43d30'], GR: ['#0d5eaf', '#ffffff'],
+  HR: ['#171796', '#ff0000'], HU: ['#436f4d', '#cd2a3e'], IE: ['#169b62', '#ff883e'],
+  IL: ['#0038b8', '#ffffff'], IT: ['#009246', '#ce2b37'], LT: ['#c1272d', '#fdb913'],
+  LU: ['#00a1de', '#ed2939'], LV: ['#9e3039', '#ffffff'], MC: ['#ce2b37', '#ffffff'],
+  NL: ['#ae1c28', '#21468b'], NO: ['#ef2b2d', '#002868'], PL: ['#dc143c', '#ffffff'],
+  PT: ['#046a38', '#da291c'], RO: ['#002b7f', '#fcd116'], RS: ['#c6363c', '#0c4076'],
+  SE: ['#006aa7', '#fecc02'], UA: ['#0057b7', '#ffd700'], SM: ['#5eb6e4', '#ffffff'],
+  SI: ['#0052cc', '#ed1c24'], TR: ['#e30a17', '#ffffff'], US: ['#3c3b6e', '#b22234'],
+  XK: ['#244aa5', '#d4af37'],
+}
+
+function getCountryPalette(country: Country | undefined): [string, string] {
+  if (!country) return ['#ffd45a', '#ff8a32']
+  return COUNTRY_PALETTE[country.code.toUpperCase()] || ['#ffd45a', '#ff8a32']
 }
 
 const getTotal = (country: Country) =>
@@ -112,15 +133,16 @@ function useStateSync() {
   const [state, setState] = useState<State | null>(null)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const refresh = async () => {
-      try {
-        setState(await loadState())
-        setError('')
-      } catch (reason) {
-        setError(describeError(reason))
-      }
+  const refresh = async () => {
+    try {
+      setState(await loadState())
+      setError('')
+    } catch (reason) {
+      setError(describeError(reason))
     }
+  }
+
+  useEffect(() => {
     refresh()
     const channel = supabase.channel('smilevision-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, refresh)
@@ -129,7 +151,7 @@ function useStateSync() {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
-  return { state, error }
+  return { state, error, refresh }
 }
 
 async function updateSettings(patch: Record<string, unknown>) {
@@ -184,7 +206,7 @@ function AdminLogin() {
 }
 
 function Admin() {
-  const { state, error } = useStateSync()
+  const { state, error, refresh } = useStateSync()
   const [tab, setTab] = useState<'countries' | 'jury' | 'onair'>('countries')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -212,6 +234,7 @@ function Admin() {
       window.alert(`Could not add country: ${insertError.message}`)
       return
     }
+    await refresh()
     setName('')
     setCode('')
   }
@@ -228,6 +251,7 @@ function Admin() {
         order_index: index,
       })
     }))
+    await refresh()
   }
 
   const moveCountry = async (country: Country, direction: -1 | 1) => {
@@ -239,6 +263,7 @@ function Admin() {
       updateCountry(country.id, { order_index: ordered[swapIndex].orderIndex }),
       updateCountry(ordered[swapIndex].id, { order_index: country.orderIndex }),
     ])
+    await refresh()
   }
 
   const deleteCountry = async (country: Country) => {
@@ -254,6 +279,7 @@ function Admin() {
       window.alert(`Could not remove ${country.name}: ${deleteError.message}`)
       return
     }
+    await refresh()
   }
 
   const uploadMedia = async (country: Country, kind: 'video' | 'audio', file?: File) => {
@@ -270,6 +296,7 @@ function Admin() {
     if (uploadError) throw uploadError
     const { data } = supabase.storage.from('spokespersons').getPublicUrl(safeName)
     await updateCountry(country.id, kind === 'video' ? { video_url: data.publicUrl } : { audio_url: data.publicUrl })
+    await refresh()
   }
 
   const saveJuryVote = async (recipientId: string, points: number) => {
@@ -297,6 +324,7 @@ function Admin() {
       recipient_country_id: recipientId,
       points,
     }, { onConflict: 'jury_country_id,recipient_country_id' })
+    await refresh()
   }
 
   const randomizeJuryAwards = async (juryIds: string[]) => {
@@ -319,6 +347,7 @@ function Admin() {
         })),
       )
     }
+    await refresh()
   }
 
   const setOnAirScene = async (scene: State['overlayScene'], stepIndex?: number) => {
@@ -328,6 +357,7 @@ function Admin() {
       active_jury_id: onAirId,
       step_index: stepIndex ?? state.stepIndex,
     })
+    await refresh()
   }
 
   const nextScene = async () => {
@@ -352,6 +382,7 @@ function Admin() {
       revealed_jury: recipient.revealedJury + 12,
       jury: recipient.jury + 12,
     })
+    await refresh()
   }
 
   const juryVotes = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
@@ -479,6 +510,11 @@ function Overlay() {
     .sort((a, b) => b.points - a.points)
   const points12 = awards.find((vote) => vote.points === 12)
   const points12Country = state.countries.find((country) => country.id === points12?.recipientCountryId)
+  const [countryPrimary, countrySecondary] = getCountryPalette(points12Country)
+  const twelveCardStyle = {
+    '--card-primary': countryPrimary,
+    '--card-secondary': countrySecondary,
+  } as CSSProperties
   const smallAwards = awards
     .filter((vote) => vote.points < 12 && vote.recipientCountryId !== state.activeJuryId)
     .sort((a, b) => b.points - a.points)
@@ -517,7 +553,7 @@ function Overlay() {
     return (
       <main className="overlay-root transparent">
         {points12Country && (
-          <div className="twelve-card">
+          <div className="twelve-card" style={twelveCardStyle}>
             <FlagImage country={points12Country} className="twelve-flag" />
             <strong>{points12Country.name}</strong>
             <b>12</b>
@@ -543,7 +579,7 @@ function Overlay() {
         </div>
         <div className="leaderboard-center">
           {points12Country && (
-            <div className="twelve-card compact">
+            <div className="twelve-card compact" style={twelveCardStyle}>
               <FlagImage country={points12Country} className="twelve-flag" />
               <strong>{points12Country.name}</strong>
               <b>12</b>

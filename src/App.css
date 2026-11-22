@@ -105,7 +105,7 @@
 .visualizer-bars { height: 220px; display: flex; align-items: end; justify-content: center; gap: 8px; padding: 20px; }
 .visualizer-bars i { width: 14px; height: 20%; border-radius: 12px; background: linear-gradient(180deg, var(--yellow), var(--orange), #ff6b32); box-shadow: 0 0 22px rgba(255,170,54,.42); animation: bars .72s ease-in-out infinite alternate; }
 
-.twelve-card { position: absolute; left: 50%; top: 50%; width: 520px; height: 240px; transform: translate(-50%, -50%); border: 1px solid rgba(255,223,126,.34); border-radius: 18px; background: linear-gradient(135deg, rgba(255,212,90,.96), rgba(255,138,50,.96)); color: #171117; display: grid; grid-template-columns: 170px 1fr 110px; align-items: center; padding: 28px; box-shadow: 0 24px 80px rgba(255,151,52,.34), inset 0 0 40px rgba(255,255,255,.24); animation: twelveIn .65s cubic-bezier(.2,.8,.2,1) both; }
+.twelve-card { --card-primary: #ffd45a; --card-secondary: #ff8a32; position: absolute; left: 50%; top: 50%; width: 520px; height: 240px; transform: translate(-50%, -50%); border: 1px solid rgba(255,223,126,.34); border-radius: 18px; background: linear-gradient(135deg, color-mix(in srgb, var(--card-primary) 72%, transparent), color-mix(in srgb, var(--card-secondary) 72%, transparent)); backdrop-filter: blur(14px); color: #171117; display: grid; grid-template-columns: 170px 1fr 110px; align-items: center; padding: 28px; box-shadow: 0 24px 80px color-mix(in srgb, var(--card-secondary) 28%, transparent), inset 0 0 40px rgba(255,255,255,.18); animation: twelveIn .65s cubic-bezier(.2,.8,.2,1) both; }
 .twelve-flag { width: 140px; height: 140px; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,.22); font-size: 84px; }
 .twelve-card strong { font-family: Jorick, Montserrat, Arial, sans-serif; font-size: 38px; text-align: center; }
 .twelve-card b { width: 92px; height: 92px; display: grid; place-items: center; border-radius: 50%; background: #171117; color: var(--yellow); font-size: 42px; box-shadow: 0 0 38px rgba(255,255,255,.25); }
@@ -127,7 +127,7 @@
 .leaderboard-side.right .leaderboard-row .leaderboard-flag { grid-column: 3; }
 .leaderboard-side.right .leaderboard-row .leaderboard-rank { grid-column: 4; }
 .leaderboard-center { display: grid; place-items: end center; padding-bottom: 72px; }
-.twelve-card.compact { position: relative; left: auto; top: auto; transform: none; width: 390px; height: 130px; grid-template-columns: 82px 1fr 70px; padding: 16px; animation: compactIn .75s cubic-bezier(.2,.8,.2,1) both; }
+.twelve-card.compact { position: relative; left: auto; top: auto; transform: none; width: 390px; height: 130px; grid-template-columns: 82px 1fr 70px; padding: 16px; background: linear-gradient(135deg, color-mix(in srgb, var(--card-primary) 84%, transparent), color-mix(in srgb, var(--card-secondary) 84%, transparent)); border-color: color-mix(in srgb, var(--card-primary) 46%, rgba(255,255,255,.30)); animation: compactIn .75s cubic-bezier(.2,.8,.2,1) both; }
 .twelve-card.compact .twelve-flag { width: 78px; height: 78px; font-size: 48px; }
 .twelve-card.compact strong { font-size: 24px; }
 .twelve-card.compact b { width: 58px; height: 58px; font-size: 26px; }
