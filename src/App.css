@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Jorick&family=Montserrat:wght@400;500;600;700;800&display=swap');
+
 :root {
   --yellow: #ffd45a;
   --orange: #ff8a32;
@@ -38,6 +40,11 @@
 .panel { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
 .panel-header { height: 76px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .panel-header h2 { font-size: 18px; }
+.flag-image { display: grid; place-items: center; overflow: hidden; background: rgba(255,255,255,.12); }
+.flag-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.flag-image[data-fallback]:not(:has(img))::before { content: attr(data-fallback); }
+.admin-flag { width: 42px; height: 42px; border-radius: 7px; }
+.jury-flag { width: 34px; height: 34px; border-radius: 5px; }
 
 .single-panel { padding: 16px 32px 32px; }
 .countries-panel { min-height: 620px; }
@@ -110,8 +117,14 @@
 .leaderboard-side.right .leaderboard-row { background: linear-gradient(270deg, rgba(28,23,20,.82), rgba(255,170,64,.10)); animation-name: slideRight; }
 .leaderboard-rank { color: #d7b877; font-size: 12px; text-align: center; }
 .leaderboard-flag { font-size: 32px; text-align: center; }
+.leaderboard-flag { width: 58px; height: 58px; border-radius: 7px; }
 .leaderboard-row strong { font-size: 15px; }
 .leaderboard-row b { text-align: right; font-size: 17px; color: var(--yellow); }
+.leaderboard-side.right .leaderboard-row { grid-template-columns: 58px 1fr 58px 46px; }
+.leaderboard-side.right .leaderboard-row b { grid-column: 1; text-align: left; }
+.leaderboard-side.right .leaderboard-row strong { grid-column: 2; text-align: right; }
+.leaderboard-side.right .leaderboard-row .leaderboard-flag { grid-column: 3; }
+.leaderboard-side.right .leaderboard-row .leaderboard-rank { grid-column: 4; }
 .leaderboard-center { display: grid; place-items: end center; padding-bottom: 72px; }
 .twelve-card.compact { position: relative; left: auto; top: auto; transform: none; width: 390px; height: 130px; grid-template-columns: 82px 1fr 70px; padding: 16px; animation: compactIn .75s cubic-bezier(.2,.8,.2,1) both; }
 .twelve-card.compact .twelve-flag { width: 78px; height: 78px; font-size: 48px; }

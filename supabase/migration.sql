@@ -14,6 +14,7 @@ create table if not exists public.countries (
   name text not null,
   code text not null,
   flag text not null default '🏳️',
+  flag_url text,
   video_url text,
   audio_url text,
   jury integer not null default 0,
@@ -36,6 +37,7 @@ alter table public.settings add column if not exists active_jury_id text;
 alter table public.settings add column if not exists step_index integer not null default 0;
 alter table public.countries add column if not exists video_url text;
 alter table public.countries add column if not exists audio_url text;
+alter table public.countries add column if not exists flag_url text;
 alter table public.countries add column if not exists order_index integer not null default 0;
 
 alter table public.settings enable row level security;

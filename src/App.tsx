@@ -7,6 +7,7 @@ type Country = {
   name: string
   code: string
   flag: string
+  flagUrl: string
   videoUrl: string
   audioUrl: string
   jury: number
@@ -42,6 +43,7 @@ const mapCountry = (row: Record<string, unknown>): Country => ({
   name: String(row.name),
   code: String(row.code),
   flag: String(row.flag),
+  flagUrl: row.flag_url ? String(row.flag_url) : `https://flagcdn.com/w80/${String(row.code).toLowerCase()}.png`,
   videoUrl: row.video_url ? String(row.video_url) : '',
   audioUrl: row.audio_url ? String(row.audio_url) : '',
   jury: Number(row.jury),
@@ -58,14 +60,18 @@ const describeError = (reason: unknown) => {
 }
 
 async function loadState(): Promise<State> {
-  const [settingsResult, countriesResult, votesResult] = await Promise.all([
+  const [settingsResult, countriesResult] = await Promise.all([
     supabase.from('settings').select('*').eq('id', 'main').single(),
     supabase.from('countries').select('*'),
-    supabase.from('jury_votes').select('*'),
   ])
   if (settingsResult.error) throw settingsResult.error
   if (countriesResult.error) throw countriesResult.error
-  if (votesResult.error) throw votesResult.error
+  const votesResult = await supabase.from('jury_votes').select('*')
+  const juryVotes = votesResult.error ? [] : votesResult.data.map((row) => ({
+    juryCountryId: String(row.jury_country_id),
+    recipientCountryId: String(row.recipient_country_id),
+    points: Number(row.points),
+  }))
 
   const settings = settingsResult.data
   return {
@@ -79,11 +85,7 @@ async function loadState(): Promise<State> {
     countries: countriesResult.data
       .map((row) => mapCountry(row))
       .sort((a, b) => a.orderIndex - b.orderIndex),
-    juryVotes: votesResult.data.map((row) => ({
-      juryCountryId: String(row.jury_country_id),
-      recipientCountryId: String(row.recipient_country_id),
-      points: Number(row.points),
-    })),
+    juryVotes,
   }
 }
 
@@ -119,6 +121,17 @@ async function updateSettings(patch: Record<string, unknown>) {
 async function updateCountry(id: string, patch: Record<string, unknown>) {
   const { error } = await supabase.from('countries').update(patch).eq('id', id)
   if (error) throw error
+}
+
+function FlagImage({ country, className = '' }: { country: Country; className?: string }) {
+  return (
+    <span className={`flag-image ${className}`} title={country.name}>
+      <img src={country.flagUrl} alt={`${country.name} flag`} onError={(event) => {
+        event.currentTarget.style.display = 'none'
+        event.currentTarget.parentElement?.setAttribute('data-fallback', country.flag)
+      }} />
+    </span>
+  )
 }
 
 function AdminLogin() {
@@ -173,6 +186,7 @@ function Admin() {
       name: name.trim(),
       code: (code || name.slice(0, 2)).trim().toUpperCase(),
       flag,
+      flag_url: `https://flagcdn.com/w80/${(code || name.slice(0, 2)).trim().toLowerCase()}.png`,
       order_index: state.countries.length,
     })
     setName('')
@@ -290,7 +304,7 @@ function Admin() {
                 {[...state.countries].sort((a, b) => a.orderIndex - b.orderIndex).map((country, index) => (
                   <article className="ordered-row" key={country.id}>
                     <span className="order-number">{index + 1}</span>
-                    <span className="flag">{country.flag}</span>
+                    <FlagImage country={country} className="admin-flag" />
                     <strong>{country.name}</strong>
                     <button onClick={() => moveCountry(country, -1)} disabled={index === 0}>↑</button>
                     <button onClick={() => moveCountry(country, 1)} disabled={index === state.countries.length - 1}>↓</button>
@@ -316,7 +330,7 @@ function Admin() {
               <p className="eyebrow">JURY COUNTRY</p>
               {state.countries.map((country) => (
                 <button className={juryId === country.id ? 'jury-country active' : 'jury-country'} key={country.id} onClick={() => setSelectedJuryId(country.id)}>
-                  <span>{country.flag}</span><strong>{country.name}</strong>
+                  <FlagImage country={country} className="jury-flag" /><strong>{country.name}</strong>
                 </button>
               ))}
             </aside>
@@ -329,7 +343,7 @@ function Admin() {
                     <strong className={points === 12 ? 'points-12' : ''}>{points}</strong>
                     <select value={vote?.recipientCountryId || ''} onChange={(event) => saveJuryVote(event.target.value, points)}>
                       <option value="">Choose recipient</option>
-                      {state.countries.map((country) => <option key={country.id} value={country.id}>{country.flag} {country.name}</option>)}
+                      {state.countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
                     </select>
                   </div>
                 )
@@ -343,7 +357,7 @@ function Admin() {
             <section className="panel onair-controls">
               <p className="eyebrow">ACTIVE JURY COUNTRY</p>
               <select value={onAirId} onChange={(event) => setSelectedOnAirId(event.target.value)}>
-                {state.countries.map((country) => <option key={country.id} value={country.id}>{country.flag} {country.name}</option>)}
+                {state.countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
               </select>
               <div className="scene-status"><span className={state.overlayScene !== 'hidden' ? 'live-dot' : ''} /> Scene: {state.overlayScene}</div>
               <button className="previous-button" onClick={previousScene}>← Previous</button>
@@ -382,7 +396,7 @@ function Overlay() {
             {smallAwards.map((award) => {
               const country = state.countries.find((item) => item.id === award.recipientCountryId)
               if (!country) return null
-              return <div className="small-award-row" key={award.recipientCountryId}><span>{country.flag}</span><strong>{country.name}</strong><b>{award.points}</b></div>
+              return <div className="small-award-row" key={award.recipientCountryId}><FlagImage country={country} /><strong>{country.name}</strong><b>{award.points}</b></div>
             })}
           </div>
           <div className="spokesperson-center" />
@@ -406,7 +420,7 @@ function Overlay() {
       <main className="overlay-root transparent">
         {points12Country && (
           <div className="twelve-card">
-            <span className="twelve-flag">{points12Country.flag}</span>
+            <FlagImage country={points12Country} className="twelve-flag" />
             <strong>{points12Country.name}</strong>
             <b>12</b>
           </div>
@@ -421,14 +435,14 @@ function Overlay() {
         <div className="leaderboard-side left">
           {leftCountries.map((country, index) => (
             <div className={country.id === points12Country?.id ? 'leaderboard-row moving-left' : 'leaderboard-row'} key={country.id}>
-              <span className="leaderboard-rank">{index + 1}</span><span className="leaderboard-flag">{country.flag}</span><strong>{country.name}</strong><b>{getTotal(country)}</b>
+              <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><b>{getTotal(country)}</b>
             </div>
           ))}
         </div>
         <div className="leaderboard-center">
           {points12Country && (
             <div className="twelve-card compact">
-              <span className="twelve-flag">{points12Country.flag}</span>
+              <FlagImage country={points12Country} className="twelve-flag" />
               <strong>{points12Country.name}</strong>
               <b>12</b>
               <small>{activeCountry ? `from ${activeCountry.name}` : ''}</small>
@@ -438,7 +452,7 @@ function Overlay() {
         <div className="leaderboard-side right">
           {rightCountries.map((country, index) => (
             <div className={country.id === points12Country?.id ? 'leaderboard-row moving-right' : 'leaderboard-row'} key={country.id}>
-              <span className="leaderboard-rank">{index + 14}</span><span className="leaderboard-flag">{country.flag}</span><strong>{country.name}</strong><b>{getTotal(country)}</b>
+              <b>{getTotal(country)}</b><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
             </div>
           ))}
         </div>
