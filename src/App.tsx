@@ -149,7 +149,16 @@ function useStateSync() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'countries' }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jury_votes' }, refresh)
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    const polling = window.setInterval(refresh, 700)
+    const onVisible = () => {
+      if (!document.hidden) refresh()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.clearInterval(polling)
+      document.removeEventListener('visibilitychange', onVisible)
+      supabase.removeChannel(channel)
+    }
   }, [])
   return { state, error, refresh }
 }
