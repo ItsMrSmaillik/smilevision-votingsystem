@@ -133,6 +133,9 @@
 .twelve-card.compact b { width: 58px; height: 58px; font-size: 26px; }
 .twelve-card.compact small { position: absolute; left: 0; right: 0; bottom: -34px; text-align: center; color: #fff; font-family: Montserrat, Arial, sans-serif; font-size: 13px; font-weight: 600; text-shadow: 0 2px 12px #000; }
 .moving-left, .moving-right { border-color: rgba(255,215,100,.48); box-shadow: 0 0 30px rgba(255,151,52,.22); }
+.active-jury-dim { filter: saturate(.35) brightness(.58); opacity: .62; border-color: rgba(255,255,255,.04); }
+.jury-random-actions { display: flex; gap: 8px; }
+.jury-random-actions button { height: 36px; border: 1px solid rgba(255,210,106,.24); border-radius: 7px; background: linear-gradient(135deg, rgba(255,212,90,.14), rgba(255,138,50,.14)); color: #ffd875; padding: 0 10px; }
 
 @keyframes slideLeft { from { opacity: 0; transform: translateX(-80px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes slideRight { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: translateX(0); } }

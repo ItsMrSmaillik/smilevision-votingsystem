@@ -35,6 +35,25 @@ type State = {
   juryVotes: JuryVote[]
 }
 
+const COUNTRY_CODES: Record<string, string> = {
+  albania: 'AL', armenia: 'AM', australia: 'AU', austria: 'AT', azerbaijan: 'AZ',
+  belgium: 'BE', bulgaria: 'BG', croatia: 'HR', cyprus: 'CY', czechia: 'CZ',
+  'czech republic': 'CZ', denmark: 'DK', estonia: 'EE', finland: 'FI', france: 'FR',
+  georgia: 'GE', germany: 'DE', greece: 'GR', hungary: 'HU', iceland: 'IS',
+  ireland: 'IE', israel: 'IL', italy: 'IT', latvia: 'LV', lithuania: 'LT',
+  luxembourg: 'LU', malta: 'MT', moldova: 'MD', monaco: 'MC', montenegro: 'ME',
+  netherlands: 'NL', 'north macedonia': 'MK', norway: 'NO', poland: 'PL',
+  portugal: 'PT', romania: 'RO', russia: 'RU', sanmarino: 'SM',
+  'san marino': 'SM', serbia: 'RS', slovakia: 'SK', slovenia: 'SI',
+  spain: 'ES', sweden: 'SE', switzerland: 'CH', turkey: 'TR', ukraine: 'UA',
+  'united kingdom': 'GB', 'united states': 'US', kosovo: 'XK',
+}
+
+function inferCountryCode(name: string) {
+  const normalized = name.trim().toLowerCase()
+  return COUNTRY_CODES[normalized] || name.trim().slice(0, 2).toUpperCase()
+}
+
 const getTotal = (country: Country) =>
   country.revealedJury + country.revealedTelevote
 
@@ -254,6 +273,10 @@ function Admin() {
   }
 
   const saveJuryVote = async (recipientId: string, points: number) => {
+    if (recipientId === juryId) {
+      window.alert('A country cannot award points to itself.')
+      return
+    }
     const previous = state.juryVotes.find((vote) =>
       vote.juryCountryId === juryId && vote.points === points)
     if (previous && previous.recipientCountryId === recipientId) return
@@ -274,6 +297,28 @@ function Admin() {
       recipient_country_id: recipientId,
       points,
     }, { onConflict: 'jury_country_id,recipient_country_id' })
+  }
+
+  const randomizeJuryAwards = async (juryIds: string[]) => {
+    const points = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
+    for (const currentJuryId of juryIds) {
+      const recipients = state.countries
+        .filter((country) => country.id !== currentJuryId)
+        .map((country) => country.id)
+      for (let i = recipients.length - 1; i > 0; i--) {
+        const swap = Math.floor(Math.random() * (i + 1))
+        ;[recipients[i], recipients[swap]] = [recipients[swap], recipients[i]]
+      }
+      if (recipients.length < points.length) continue
+      await supabase.from('jury_votes').delete().eq('jury_country_id', currentJuryId)
+      await supabase.from('jury_votes').insert(
+        points.map((pointsValue, index) => ({
+          jury_country_id: currentJuryId,
+          recipient_country_id: recipients[index],
+          points: pointsValue,
+        })),
+      )
+    }
   }
 
   const setOnAirScene = async (scene: State['overlayScene'], stepIndex?: number) => {
@@ -351,7 +396,12 @@ function Admin() {
                 ))}
               </div>
               <form className="add-country" onSubmit={addCountry}>
-                <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Country name" required />
+                <input value={name} onChange={(event) => {
+                  const nextName = event.target.value
+                  setName(nextName)
+                  setCode(inferCountryCode(nextName))
+                  setFlag('🏳️')
+                }} placeholder="Country name" required />
                 <input className="code-input" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="Code" maxLength={3} />
                 <input className="flag-input" value={flag} onChange={(event) => setFlag(event.target.value)} placeholder="🏳️" />
                 <button className="button" type="submit">Add country</button>
@@ -371,7 +421,13 @@ function Admin() {
               ))}
             </aside>
             <section className="panel jury-grid">
-              <div className="panel-header"><div><p className="eyebrow">AWARDS</p><h2>{state.countries.find((country) => country.id === juryId)?.name || 'Select country'}</h2></div></div>
+              <div className="panel-header">
+                <div><p className="eyebrow">AWARDS</p><h2>{state.countries.find((country) => country.id === juryId)?.name || 'Select country'}</h2></div>
+                <div className="jury-random-actions">
+                  <button onClick={() => randomizeJuryAwards([juryId])}>Random this jury</button>
+                  <button onClick={() => randomizeJuryAwards(state.countries.map((country) => country.id))}>Random all juries</button>
+                </div>
+              </div>
               {juryVotes.map((points) => {
                 const vote = state.juryVotes.find((item) => item.juryCountryId === juryId && item.points === points)
                 return (
@@ -379,7 +435,11 @@ function Admin() {
                     <strong className={points === 12 ? 'points-12' : ''}>{points}</strong>
                     <select value={vote?.recipientCountryId || ''} onChange={(event) => saveJuryVote(event.target.value, points)}>
                       <option value="">Choose recipient</option>
-                      {state.countries.map((country) => <option key={country.id} value={country.id}>{country.name}</option>)}
+                      {state.countries.map((country) => (
+                        <option key={country.id} value={country.id} disabled={country.id === juryId}>
+                          {country.name}{country.id === juryId ? ' — cannot receive own points' : ''}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 )
@@ -419,7 +479,9 @@ function Overlay() {
     .sort((a, b) => b.points - a.points)
   const points12 = awards.find((vote) => vote.points === 12)
   const points12Country = state.countries.find((country) => country.id === points12?.recipientCountryId)
-  const smallAwards = awards.filter((vote) => vote.points < 12).sort((a, b) => b.points - a.points)
+  const smallAwards = awards
+    .filter((vote) => vote.points < 12 && vote.recipientCountryId !== state.activeJuryId)
+    .sort((a, b) => b.points - a.points)
   const sortedCountries = [...state.countries].sort((a, b) => getTotal(b) - getTotal(a))
   const leftCountries = sortedCountries.slice(0, 13)
   const rightCountries = sortedCountries.slice(13, 26)
@@ -470,7 +532,11 @@ function Overlay() {
       <section className="leaderboard-layout">
         <div className="leaderboard-side left">
           {leftCountries.map((country, index) => (
-            <div className={country.id === points12Country?.id ? 'leaderboard-row moving-left' : 'leaderboard-row'} key={country.id}>
+            <div className={[
+              'leaderboard-row',
+              country.id === points12Country?.id ? 'moving-left' : '',
+              country.id === state.activeJuryId ? 'active-jury-dim' : '',
+            ].filter(Boolean).join(' ')} key={country.id}>
               <span className="leaderboard-rank">{index + 1}</span><FlagImage country={country} className="leaderboard-flag" /><strong>{country.name}</strong><b>{getTotal(country)}</b>
             </div>
           ))}
@@ -487,7 +553,11 @@ function Overlay() {
         </div>
         <div className="leaderboard-side right">
           {rightCountries.map((country, index) => (
-            <div className={country.id === points12Country?.id ? 'leaderboard-row moving-right' : 'leaderboard-row'} key={country.id}>
+            <div className={[
+              'leaderboard-row',
+              country.id === points12Country?.id ? 'moving-right' : '',
+              country.id === state.activeJuryId ? 'active-jury-dim' : '',
+            ].filter(Boolean).join(' ')} key={country.id}>
               <b>{getTotal(country)}</b><strong>{country.name}</strong><FlagImage country={country} className="leaderboard-flag" /><span className="leaderboard-rank">{index + 14}</span>
             </div>
           ))}
