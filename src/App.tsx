@@ -136,11 +136,7 @@ function useStateSync() {
   const refresh = async () => {
     try {
       const nextState = await loadState()
-      if (document.startViewTransition) {
-        document.startViewTransition(() => setState(nextState))
-      } else {
-        setState(nextState)
-      }
+      setState(nextState)
       setError('')
     } catch (reason) {
       setError(describeError(reason))
@@ -613,7 +609,7 @@ function Overlay() {
       <section className="leaderboard-layout">
         <div className="leaderboard-side left">
           {leftCountries.map((country, index) => (
-            <div style={{ viewTransitionName: `country-${country.id}` } as CSSProperties} className={[
+            <div className={[
               'leaderboard-row',
               country.id === points12Country?.id ? 'moving-left' : '',
               country.id === state.activeJuryId ? 'active-jury-dim' : '',
@@ -637,7 +633,7 @@ function Overlay() {
         </div>
         <div className="leaderboard-side right">
           {rightCountries.map((country, index) => (
-            <div style={{ viewTransitionName: `country-${country.id}` } as CSSProperties} className={[
+            <div className={[
               'leaderboard-row',
               country.id === points12Country?.id ? 'moving-right' : '',
               country.id === state.activeJuryId ? 'active-jury-dim' : '',
