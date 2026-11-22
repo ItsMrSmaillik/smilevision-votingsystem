@@ -30,12 +30,20 @@ alter table public.countries enable row level security;
 drop policy if exists "Public read settings" on public.settings;
 create policy "Public read settings" on public.settings for select using (true);
 drop policy if exists "Public update settings" on public.settings;
-create policy "Public update settings" on public.settings for all using (true) with check (true);
+create policy "Authenticated update settings"
+on public.settings for all
+to authenticated
+using (true)
+with check (true);
 
 drop policy if exists "Public read countries" on public.countries;
 create policy "Public read countries" on public.countries for select using (true);
 drop policy if exists "Public change countries" on public.countries;
-create policy "Public change countries" on public.countries for all using (true) with check (true);
+create policy "Authenticated change countries"
+on public.countries for all
+to authenticated
+using (true)
+with check (true);
 
 insert into public.settings (id, title, event_name, phase, visible)
 select 'main', 'SMILEVISION', 'Grand Final', 'jury', true
@@ -65,6 +73,14 @@ on storage.objects for select
 using (bucket_id = 'spokespersons');
 
 drop policy if exists "Public spokesperson uploads" on storage.objects;
-create policy "Public spokesperson uploads"
-on storage.objects for insert
+create policy "Authenticated spokesperson uploads"
+on storage.objects for all
+to authenticated
+using (bucket_id = 'spokespersons')
 with check (bucket_id = 'spokespersons');
+
+grant usage on schema public to anon, authenticated;
+grant select on public.settings to anon, authenticated;
+grant select on public.countries to anon, authenticated;
+grant insert, update, delete on public.settings to authenticated;
+grant insert, update, delete on public.countries to authenticated;

@@ -12,6 +12,39 @@ function describeError(reason: unknown) {
   }
 }
 
+function AdminLogin() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const signIn = async (event: FormEvent) => {
+    event.preventDefault()
+    setLoading(true)
+    setError('')
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    })
+    if (signInError) setError(signInError.message)
+    setLoading(false)
+  }
+
+  return (
+    <main className="login-shell">
+      <form className="login-card" onSubmit={signIn}>
+        <div className="brand login-brand"><span className="brand-mark">S</span><strong>SMILE</strong>VISION</div>
+        <p className="eyebrow">CONTROL ROOM ACCESS</p>
+        <h1>Sign in</h1>
+        <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email" required />
+        <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Password" required />
+        {error && <div className="login-error">{error}</div>}
+        <button className="award-button" type="submit" disabled={loading}>{loading ? 'Signing in...' : 'Open control room'}</button>
+      </form>
+    </main>
+  )
+}
+
 type Country = {
   id: string
   name: string
@@ -209,6 +242,7 @@ function Admin() {
           <div><p className="eyebrow">EVENT CONTROL</p><h1>{state.eventName}</h1></div>
           <div className="top-actions">
             <a className="button secondary" href="/overlay" target="_blank">Open overlay ↗</a>
+            <button className="button secondary" onClick={() => supabase.auth.signOut()}>Sign out</button>
             <button className="button" onClick={() => updateSettings({ visible: !state.visible })}>
               {state.visible ? 'Hide overlay' : 'Show overlay'}
             </button>
@@ -331,5 +365,16 @@ function Overlay() {
 }
 
 export default function App() {
-  return window.location.pathname === '/overlay' ? <Overlay /> : <Admin />
+  const [session, setSession] = useState<Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  if (window.location.pathname === '/overlay') return <Overlay />
+  return session ? <Admin /> : <AdminLogin />
 }
